@@ -13,6 +13,12 @@ int main(int, char **)  // 2-arg form is required by SDL
     }
     atexit(SDL_Quit);
 
+    if (IMG_Init(IMG_INIT_PNG) < 0) {
+        std::cerr << "Error initializing SDL_image: " << IMG_GetError();
+        return EXIT_FAILURE;
+    }
+    atexit(IMG_Quit);
+
     if (TTF_Init() < 0) {
         std::cerr << "Error initializing SDL_ttf: " << TTF_GetError();
         return EXIT_FAILURE;
@@ -51,38 +57,35 @@ int main(int, char **)  // 2-arg form is required by SDL
     std::cout << "Curious about font hinting, we have: " << hint << '\n';
     SDL_Surface *text = TTF_RenderText_Blended(font, "Hello, world!", SDL_Color({255, 255, 255, 0}));
     if (text == nullptr) {
-        std::cerr << "Error rendering text: " << TTF_GetError();
-        SDL_FreeSurface(picture);
-        TTF_CloseFont(font);
-        return EXIT_FAILURE;
+        std::cerr << "Warning: error rendering blended text: " << TTF_GetError();
     }
-    dest = {285, 260, 0, 0};
-    if (SDL_BlitSurface(text, nullptr, screen, &dest) < 0) {
-        std::cerr << "Warning: error drawing text to screen: " << SDL_GetError();
+    else {
+        dest = {285, 260, 0, 0};
+        if (SDL_BlitSurface(text, nullptr, screen, &dest) < 0) {
+            std::cerr << "Warning: error drawing blended text to screen: " << SDL_GetError();
+        }
+        SDL_FreeSurface(text);
     }
-    SDL_FreeSurface(text);
     text = TTF_RenderText_Shaded(font, "Hello, world!", SDL_Color({255, 255, 255, 0}), SDL_Color({0, 0, 0, 0}));
     if (text == nullptr) {
-        std::cerr << "Error rendering text #2: " << TTF_GetError();
-        SDL_FreeSurface(picture);
-        TTF_CloseFont(font);
-        return EXIT_FAILURE;
+        std::cerr << "Warning: error rendering shaded text: " << TTF_GetError();
     }
-    dest = {285, 280, 0, 0};
-    if (SDL_BlitSurface(text, nullptr, screen, &dest) < 0) {
-        std::cerr << "Warning: error drawing text to screen: " << SDL_GetError();
+    else {
+        dest = {285, 280, 0, 0};
+        if (SDL_BlitSurface(text, nullptr, screen, &dest) < 0) {
+            std::cerr << "Warning: error drawing shaded text to screen: " << SDL_GetError();
+        }
+        SDL_FreeSurface(text);
     }
-    SDL_FreeSurface(text);
     text = TTF_RenderText_Solid(font, "Hello, world!", SDL_Color({255, 255, 255, 0}));
     if (text == nullptr) {
-        std::cerr << "Error rendering text #2: " << TTF_GetError();
-        SDL_FreeSurface(picture);
-        TTF_CloseFont(font);
-        return EXIT_FAILURE;
+        std::cerr << "Warning: error rendering solid text: " << TTF_GetError();
     }
-    dest = {285, 300, 0, 0};
-    if (SDL_BlitSurface(text, nullptr, screen, &dest) < 0) {
-        std::cerr << "Warning: error drawing text to screen: " << SDL_GetError();
+    else {
+        dest = {285, 300, 0, 0};
+        if (SDL_BlitSurface(text, nullptr, screen, &dest) < 0) {
+            std::cerr << "Warning: error drawing solid text to screen: " << SDL_GetError();
+        }
     }
 
     SDL_UpdateRect(screen, 0, 0, 0, 0);
