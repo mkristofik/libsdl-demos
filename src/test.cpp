@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <iostream>
 
-int main(int, char **)  // 2-arg form is required by SDL
+extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
 {
     if (SDL_Init(SDL_INIT_VIDEO) == -1) {
         std::cerr << "Error initializing SDL: " << SDL_GetError();
@@ -25,11 +25,21 @@ int main(int, char **)  // 2-arg form is required by SDL
     }
     atexit(TTF_Quit);
 
+    // Have to do this prior to SetVideoMode.
+    SDL_Surface *icon = IMG_Load("../icon.png");
+    if (icon == nullptr) {
+        std::cerr << "Warning: error loading icon file: " << IMG_GetError();
+    }
+    else {
+        SDL_WM_SetIcon(icon, nullptr);
+    }
+
     SDL_Surface *screen = SDL_SetVideoMode(640, 480, 0, SDL_SWSURFACE);
     if (screen == nullptr) {
         std::cerr << "Error setting video mode: " << SDL_GetError();
         return EXIT_FAILURE;    
     }
+    SDL_WM_SetCaption("Title Bar", "Doesn't seem to matter on Win7");
 
     SDL_Surface *temp = IMG_Load("../avatar.png");
     if (temp == nullptr) {
