@@ -58,10 +58,10 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     SDL_Rect dest = {0, 0, 0, 0};
 
     // Display even-numbered columns.
-    for (Sint16 x = 0; x < 864; x += hexSize * 1.5) {
-        for (Sint16 y = 0; y < 648; y += hexSize) {
-            dest.x = x;
-            dest.y = y;
+    for (Sint16 x = 0; x <= 14; x += 2) {
+        for (Sint16 y = 0; y <= 8; ++y) {
+            dest.x = x * hexSize * 0.75;
+            dest.y = y * hexSize;
             if (SDL_BlitSurface(grassTile.get(), nullptr, screen, &dest) < 0) {
                 std::cerr << "Warning: error drawing grass hex to screen: " << SDL_GetError();
             }
@@ -69,10 +69,10 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     }
 
     // Display odd-numbered columns.
-    for (Sint16 x = hexSize * 0.75; x < 918; x += hexSize * 1.5) {
-        for (Sint16 y = hexSize * 0.5; y < 684; y += hexSize) {
-            dest.x = x;
-            dest.y = y;
+    for (Sint16 x = 1; x <= 15; x += 2) {
+        for (Sint16 y = 0; y <= 8; ++y) {
+            dest.x = x * hexSize * 0.75;
+            dest.y = (y * hexSize) + (hexSize * 0.5);
             if (SDL_BlitSurface(grassTile.get(), nullptr, screen, &dest) < 0) {
                 std::cerr << "Warning: error drawing grass hex to screen: " << SDL_GetError();
             }
