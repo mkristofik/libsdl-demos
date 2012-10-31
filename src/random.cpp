@@ -3,15 +3,23 @@
 
 #include <algorithm>
 #include <cassert>
+#include <ctime>
 #include <iostream>
 #include <memory>
+#include <random>
+#include <stdexcept>
+#include <utility>
 #include <vector>
 
 typedef std::shared_ptr<SDL_Surface> SdlSurface;
+typedef std::pair<Sint16, Sint16> Point;
 
 const Sint16 hexSize = 72;
 const Sint16 mapWidth = 16;
 const Sint16 mapHeight = 9;
+const int numRegions = 6;  // chose 6 because we have 6 types of terrain.
+// TODO: use graph coloring algorithm to assign terrain types
+
 int terrain[] = {0,0,0,0,0,0,0,0,0,0,2,2,2,2,3,3,
                  4,0,0,0,0,0,0,0,0,0,2,2,2,2,3,3,
                  4,4,0,0,0,0,0,0,0,0,2,2,2,2,3,3,
@@ -23,6 +31,27 @@ int terrain[] = {0,0,0,0,0,0,0,0,0,0,2,2,2,2,3,3,
                  5,5,5,5,1,1,1,1,1,1,1,1,1,1,0,0};
 
 SDL_Surface *screen = nullptr;
+
+Point randomPoint()
+{
+    static std::mt19937 gen(static_cast<unsigned int>(std::time(nullptr)));
+    static std::uniform_int_distribution<Sint16> dist(0, mapWidth * mapHeight);
+    Sint16 p = dist(gen);
+    return std::make_pair(p % mapWidth, p / mapWidth);
+}
+
+void voronoi()
+{
+    // Start with a set of random center points.
+    std::vector<Point> centers;
+    for (int i = 0; i < numRegions; ++i) {
+        centers.emplace_back(randomPoint());
+    }
+
+    // Find the closest center to each point on the map, number those regions.
+    // Compute the centers of mass of each region.
+    // Repeat that process twice to make more regular-looking regions.
+}
 
 void sdlBlit(const SdlSurface &surf, Sint16 x, Sint16 y)
 {
@@ -52,6 +81,14 @@ SdlSurface sdlLoadImage(const char *filename)
 
 extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
 {
+    try {
+        voronoi();
+    }
+    catch (std::exception &e) {
+        std::cerr << e.what();
+        return EXIT_FAILURE;
+    }
+
     if (SDL_Init(SDL_INIT_VIDEO) == -1) {
         std::cerr << "Error initializing SDL: " << SDL_GetError();
         return EXIT_FAILURE;
