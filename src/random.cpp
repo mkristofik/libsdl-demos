@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdlib>
 #include <ctime>
 #include <iostream>
 #include <memory>
@@ -17,30 +18,68 @@ typedef std::pair<Sint16, Sint16> Point;
 const Sint16 hexSize = 72;
 const Sint16 mapWidth = 16;
 const Sint16 mapHeight = 9;
+const Sint16 mapSize = mapWidth * mapHeight;
 const int numRegions = 6;  // chose 6 because we have 6 types of terrain.
 // TODO: use graph coloring algorithm to assign terrain types
-
-int terrain[] = {0,0,0,0,0,0,0,0,0,0,2,2,2,2,3,3,
-                 4,0,0,0,0,0,0,0,0,0,2,2,2,2,3,3,
-                 4,4,0,0,0,0,0,0,0,0,2,2,2,2,3,3,
-                 4,4,4,0,0,0,0,0,0,1,1,2,2,2,3,3,
-                 4,4,4,0,0,0,0,0,1,1,1,1,1,1,0,0,
-                 4,4,4,0,0,0,0,1,1,1,1,1,1,1,0,0,
-                 5,5,5,0,0,0,1,1,1,1,1,1,1,1,0,0,
-                 5,5,5,5,1,1,1,1,1,1,1,1,1,1,0,0,
-                 5,5,5,5,1,1,1,1,1,1,1,1,1,1,0,0};
 
 SDL_Surface *screen = nullptr;
 
 Point randomPoint()
 {
-    static std::mt19937 gen(static_cast<unsigned int>(std::time(nullptr)));
-    static std::uniform_int_distribution<Sint16> dist(0, mapWidth * mapHeight);
+    static std::minstd_rand gen(static_cast<unsigned int>(std::time(nullptr)));
+    static std::uniform_int_distribution<Sint16> dist(0, mapWidth * mapHeight - 1);
     Sint16 p = dist(gen);
     return std::make_pair(p % mapWidth, p / mapWidth);
 }
 
-void voronoi()
+// Return the index of the closest center point to the given hex (x,y).
+int findClosest(Sint16 x, Sint16 y, const std::vector<Point> &centers)
+{
+    int closest = -1;
+    Sint16 bestSoFar = mapSize + 1;
+
+    for (int i = 0; i < numRegions; ++i) {
+        Sint16 dist = std::abs(x - centers[i].first) +
+                      std::abs(y - centers[i].second);
+        if (dist < bestSoFar) {
+            closest = i;
+            bestSoFar = dist;
+        }
+    }
+
+    return closest;
+}
+
+// Compute the centers of mass of each region.
+std::vector<Point> getCenters(const std::vector<int> &regions)
+{
+    std::vector<Point> positionSums(numRegions);
+    std::vector<int> numHexes(numRegions);
+    std::vector<Point> centers(numRegions);
+
+    for (Sint16 x = 0; x < mapWidth; ++x) {
+        for (Sint16 y = 0; y < mapHeight; ++y) {
+            int region = regions[y * mapWidth + x];
+            assert(region >= 0 && region < numRegions);
+
+            auto &p = positionSums[region];
+            p.first += x;
+            p.second += y;
+            ++numHexes[region];
+        }
+    }
+
+    for (int i = 0; i < numRegions; ++i) {
+        auto &c = centers[i];
+        auto &p = positionSums[i];
+        c.first = p.first / numHexes[i];
+        c.second = p.second / numHexes[i];
+    }
+
+    return centers;
+}
+
+std::vector<int> voronoi()
 {
     // Start with a set of random center points.
     std::vector<Point> centers;
@@ -48,9 +87,28 @@ void voronoi()
         centers.emplace_back(randomPoint());
     }
 
-    // Find the closest center to each point on the map, number those regions.
-    // Compute the centers of mass of each region.
-    // Repeat that process twice to make more regular-looking regions.
+    std::vector<int> regions(mapSize);
+    for (int i = 0; i < 2; ++i) {
+        // Find the closest center to each point on the map, number those
+        // regions.
+        for (Sint16 x = 0; x < mapWidth; ++x) {
+            for (Sint16 y = 0; y < mapHeight; ++y) {
+                regions[y * mapWidth + x] = findClosest(x, y, centers);
+            }
+        }
+
+        centers = getCenters(regions);
+        // Repeat this process to make more regular-looking regions.
+    }
+
+    // Assign each hex to its final region.
+    for (Sint16 x = 0; x < mapWidth; ++x) {
+        for (Sint16 y = 0; y < mapHeight; ++y) {
+            regions[y * mapWidth + x] = findClosest(x, y, centers);
+        }
+    }
+
+    return regions;
 }
 
 void sdlBlit(const SdlSurface &surf, Sint16 x, Sint16 y)
@@ -81,14 +139,6 @@ SdlSurface sdlLoadImage(const char *filename)
 
 extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
 {
-    try {
-        voronoi();
-    }
-    catch (std::exception &e) {
-        std::cerr << e.what();
-        return EXIT_FAILURE;
-    }
-
     if (SDL_Init(SDL_INIT_VIDEO) == -1) {
         std::cerr << "Error initializing SDL: " << SDL_GetError();
         return EXIT_FAILURE;
@@ -124,6 +174,8 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     tiles.emplace_back(sdlLoadImage("../img/snow.png"));
     tiles.emplace_back(sdlLoadImage("../img/desert.png"));
     tiles.emplace_back(sdlLoadImage("../img/water.png"));
+
+    auto terrain = voronoi();
 
     // Display even-numbered columns.
     for (Sint16 x = 0; x < mapWidth; x += 2) {
