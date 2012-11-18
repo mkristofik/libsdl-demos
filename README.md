@@ -1,12 +1,9 @@
-LibSDL Tech Demos
------------------
+# LibSDL Tech Demos
 **Michael Kristofik** ([kristo605@gmail.com](mailto:kristo605@gmail.com))
 
 This project charts my progress as I learn SDL and become familiar with C++11
 techniques.  I'm sharing my work because code like this wants to be free.  It's
 also my first foray into cmake without a Build Guy to do all the setup for me.
-
-----
 
 ## Random Map Generator
 
@@ -17,13 +14,15 @@ never learned about them in school because they're quite useful.  I wanted to
 see if this idea could be scaled down to a hexagonal tile map.  I think the
 results were pretty good.
 
-----
+![screenshot](https://raw.github.com/mkristofik/libsdl-demos/master/random_screen.jpg)
 
 ## Hello World
 
 No learning experience is complete without a Hello World program, so here it
 is.  I create a window, load an image, and print some text with various levels
 of anti-aliasing enabled.
+
+![screenshot](https://raw.github.com/mkristofik/libsdl-demos/master/hello_screen.jpg)
 
 ----
 
