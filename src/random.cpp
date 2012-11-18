@@ -32,6 +32,14 @@ Point randomPoint()
     return std::make_pair(p % mapWidth, p / mapWidth);
 }
 
+// source: http://playtechs.blogspot.com/2007/04/hex-grids.html
+Sint16 hexDist(const Point &lhs, const Point &rhs)
+{
+    Sint16 dx = lhs.first - rhs.first;
+    Sint16 dy = lhs.second - rhs.second;
+    return (abs(dx) + abs(dy) + abs(dx + dy)) / 2;
+}
+
 // Return the index of the closest center point to the given hex (x,y).
 int findClosest(Sint16 x, Sint16 y, const std::vector<Point> &centers)
 {
@@ -39,8 +47,7 @@ int findClosest(Sint16 x, Sint16 y, const std::vector<Point> &centers)
     Sint16 bestSoFar = mapSize + 1;
 
     for (int i = 0; i < numRegions; ++i) {
-        Sint16 dist = std::abs(x - centers[i].first) +
-                      std::abs(y - centers[i].second);
+        Sint16 dist = hexDist(Point(x, y), centers[i]);
         if (dist < bestSoFar) {
             closest = i;
             bestSoFar = dist;
@@ -170,7 +177,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     std::vector<SdlSurface> tiles;
     tiles.emplace_back(sdlLoadImage("../img/grass.png"));
     tiles.emplace_back(sdlLoadImage("../img/dirt.png"));
-    tiles.emplace_back(sdlLoadImage("../img/swamp2.png"));
+    tiles.emplace_back(sdlLoadImage("../img/swamp.png"));
     tiles.emplace_back(sdlLoadImage("../img/snow.png"));
     tiles.emplace_back(sdlLoadImage("../img/desert.png"));
     tiles.emplace_back(sdlLoadImage("../img/water.png"));

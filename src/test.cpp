@@ -73,7 +73,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     SDL_WM_SetCaption("Title Bar", "Doesn't seem to matter on Win7");
 
     auto picture = sdlLoadImage("../img/avatar.png");
-    SDL_Rect dest = {300, 200, 0, 0};
+    SDL_Rect dest = {289, 189, 0, 0};
     if (SDL_BlitSurface(picture.get(), nullptr, screen, &dest) < 0) {
         std::cerr << "Warning: error drawing picture to screen: " << SDL_GetError();
     }
