@@ -24,8 +24,8 @@
 #include <utility>
 #include <vector>
 
-typedef std::shared_ptr<SDL_Surface> SdlSurface;
-typedef std::pair<Sint16, Sint16> Point;
+using SdlSurface = std::shared_ptr<SDL_Surface>;
+using Point = std::pair<Sint16, Sint16>;
 
 const Sint16 hexSize = 72;
 const Sint16 mapWidth = 16;
@@ -33,10 +33,17 @@ const Sint16 mapHeight = 9;
 const Sint16 mapSize = mapWidth * mapHeight;
 const int numRegions = 6;  // chose 6 because we have 6 types of terrain.
 // TODO: use graph coloring algorithm to assign terrain types
+// TODO: use h prefix for hex coordinates, p for pixel coordinates
 
 SDL_Surface *screen = nullptr;
 
-Point randomPoint()
+std::ostream & operator<<(std::ostream &os, const Point &p)
+{
+    os << '(' << p.first << ',' << p.second << ')';
+    return os;
+}
+
+Point hexRandom()
 {
     static std::minstd_rand gen(static_cast<unsigned int>(std::time(nullptr)));
     static std::uniform_int_distribution<Sint16> dist(0, mapWidth * mapHeight - 1);
@@ -50,6 +57,58 @@ Sint16 hexDist(const Point &lhs, const Point &rhs)
     Sint16 dx = lhs.first - rhs.first;
     Sint16 dy = lhs.second - rhs.second;
     return (abs(dx) + abs(dy) + abs(dx + dy)) / 2;
+}
+
+std::vector<Point> hexNeighbors(const Point &hex)
+{
+    std::vector<Point> hv;
+
+    if (hex.second > 0) {
+        // north
+        hv.emplace_back(std::make_pair(hex.first, hex.second - 1));
+    }
+    if (hex.second < mapHeight - 1) {
+        // south
+        hv.emplace_back(std::make_pair(hex.first, hex.second + 1));
+    }
+    if (hex.first > 0) {
+        if (hex.first % 2 == 0) {
+            if (hex.second > 0) {
+                // northwest, even column
+                hv.emplace_back(std::make_pair(hex.first - 1, hex.second - 1));
+            }
+            // southwest, even column
+            hv.emplace_back(std::make_pair(hex.first - 1, hex.second));
+        }
+        else {
+            // northwest, odd column
+            hv.emplace_back(std::make_pair(hex.first - 1, hex.second));
+            if (hex.second < mapHeight - 1) {
+                // southwest, odd column
+                hv.emplace_back(std::make_pair(hex.first - 1, hex.second + 1));
+            }
+        }
+    }
+    if (hex.first < mapWidth - 1) {
+        if (hex.first % 2 == 0) {
+            if (hex.second > 0) {
+                // northeast, even column
+                hv.emplace_back(std::make_pair(hex.first + 1, hex.second - 1));
+            }
+            // southeast, even column
+            hv.emplace_back(std::make_pair(hex.first + 1, hex.second));
+        }
+        else {
+            // northeast, odd column
+            hv.emplace_back(std::make_pair(hex.first + 1, hex.second));
+            if (hex.second < mapHeight - 1) {
+                // southeast, odd column
+                hv.emplace_back(std::make_pair(hex.first + 1, hex.second + 1));
+            }
+        }
+    }
+
+    return hv;
 }
 
 // Return the index of the closest center point to the given hex (x,y).
@@ -103,7 +162,7 @@ std::vector<int> voronoi()
     // Start with a set of random center points.
     std::vector<Point> centers;
     for (int i = 0; i < numRegions; ++i) {
-        centers.emplace_back(randomPoint());
+        centers.emplace_back(hexRandom());
     }
 
     std::vector<int> regions(mapSize);
@@ -249,6 +308,16 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
             }
         }
         SDL_Delay(1);
+    }
+
+    // TODO: unit test?
+    for (int i = 0; i < 2; ++i) {
+        auto hex = hexRandom();
+        std::cout << hex << " neighbors are ";
+        for (auto &h : hexNeighbors(hex)) {
+            std::cout << h << ',';
+        }
+        std::cout << '\n';
     }
 
     return 0;
