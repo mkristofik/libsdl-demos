@@ -33,9 +33,14 @@ const Sint16 mapHeight = 9;
 const Sint16 mapSize = mapWidth * mapHeight;
 const int numRegions = 6;  // chose 6 because we have 6 types of terrain.
 // TODO: use graph coloring algorithm to assign terrain types
-// TODO: use h prefix for hex coordinates, p for pixel coordinates
+// TODO: use h prefix for hex coordinates, p for pixel coordinates, a for array index
 
 SDL_Surface *screen = nullptr;
+
+SdlSurface make_surface(SDL_Surface *surf)
+{
+    return SdlSurface(surf, SDL_FreeSurface);
+}
 
 std::ostream & operator<<(std::ostream &os, const Point &p)
 {
@@ -43,12 +48,22 @@ std::ostream & operator<<(std::ostream &os, const Point &p)
     return os;
 }
 
+Point hexFromAry(int aIndex)
+{
+    return std::make_pair(aIndex % mapWidth, aIndex / mapWidth);
+}
+
+int aryFromHex(const Point &hex)
+{
+    return hex.second * mapWidth + hex.first;
+}
+
 Point hexRandom()
 {
     static std::minstd_rand gen(static_cast<unsigned int>(std::time(nullptr)));
     static std::uniform_int_distribution<Sint16> dist(0, mapWidth * mapHeight - 1);
-    Sint16 p = dist(gen);
-    return std::make_pair(p % mapWidth, p / mapWidth);
+    Sint16 aRand = dist(gen);
+    return hexFromAry(aRand);
 }
 
 // source: http://playtechs.blogspot.com/2007/04/hex-grids.html
@@ -65,27 +80,27 @@ std::vector<Point> hexNeighbors(const Point &hex)
 
     if (hex.second > 0) {
         // north
-        hv.emplace_back(std::make_pair(hex.first, hex.second - 1));
+        hv.emplace_back(hex.first, hex.second - 1);
     }
     if (hex.second < mapHeight - 1) {
         // south
-        hv.emplace_back(std::make_pair(hex.first, hex.second + 1));
+        hv.emplace_back(hex.first, hex.second + 1);
     }
     if (hex.first > 0) {
         if (hex.first % 2 == 0) {
             if (hex.second > 0) {
                 // northwest, even column
-                hv.emplace_back(std::make_pair(hex.first - 1, hex.second - 1));
+                hv.emplace_back(hex.first - 1, hex.second - 1);
             }
             // southwest, even column
-            hv.emplace_back(std::make_pair(hex.first - 1, hex.second));
+            hv.emplace_back(hex.first - 1, hex.second);
         }
         else {
             // northwest, odd column
-            hv.emplace_back(std::make_pair(hex.first - 1, hex.second));
+            hv.emplace_back(hex.first - 1, hex.second);
             if (hex.second < mapHeight - 1) {
                 // southwest, odd column
-                hv.emplace_back(std::make_pair(hex.first - 1, hex.second + 1));
+                hv.emplace_back(hex.first - 1, hex.second + 1);
             }
         }
     }
@@ -93,17 +108,17 @@ std::vector<Point> hexNeighbors(const Point &hex)
         if (hex.first % 2 == 0) {
             if (hex.second > 0) {
                 // northeast, even column
-                hv.emplace_back(std::make_pair(hex.first + 1, hex.second - 1));
+                hv.emplace_back(hex.first + 1, hex.second - 1);
             }
             // southeast, even column
-            hv.emplace_back(std::make_pair(hex.first + 1, hex.second));
+            hv.emplace_back(hex.first + 1, hex.second);
         }
         else {
             // northeast, odd column
-            hv.emplace_back(std::make_pair(hex.first + 1, hex.second));
+            hv.emplace_back(hex.first + 1, hex.second);
             if (hex.second < mapHeight - 1) {
                 // southeast, odd column
-                hv.emplace_back(std::make_pair(hex.first + 1, hex.second + 1));
+                hv.emplace_back(hex.first + 1, hex.second + 1);
             }
         }
     }
@@ -189,6 +204,30 @@ std::vector<int> voronoi()
     return regions;
 }
 
+std::vector<std::vector<int>> regionNeighbors(const std::vector<int> &regions)
+{
+    assert(regions.size() == unsigned(mapSize));
+
+    std::vector<std::vector<int>> ret(numRegions);
+    for (int i = 0; i < mapSize; ++i) {
+        int reg = regions[i];
+        assert(reg >= 0 && reg < numRegions);
+
+        for (const auto &hn : hexNeighbors(hexFromAry(i))) {
+            int neighborReg = regions[aryFromHex(hn)];
+            // If an adjacent hex is in a different region and we haven't
+            // already recorded that region as a neighbor, save it.
+            if (neighborReg != reg && find(std::begin(ret[reg]),
+                                           std::end(ret[reg]),
+                                           neighborReg) == std::end(ret[reg])) {
+                ret[reg].push_back(neighborReg);
+            }
+        }
+    }
+
+    return ret;
+}
+
 void sdlBlit(const SdlSurface &surf, Sint16 x, Sint16 y)
 {
     assert(screen != nullptr);
@@ -200,13 +239,13 @@ void sdlBlit(const SdlSurface &surf, Sint16 x, Sint16 y)
 
 SdlSurface sdlLoadImage(const char *filename)
 {
-    SdlSurface temp(IMG_Load(filename), SDL_FreeSurface);
+    auto temp = make_surface(IMG_Load(filename));
     if (!temp) {
         std::cerr << "Error loading image " << filename
             << "\n    " << IMG_GetError() << '\n';
         return temp;
     }
-    SdlSurface surf(SDL_DisplayFormatAlpha(temp.get()), SDL_FreeSurface);
+    auto surf = make_surface(SDL_DisplayFormatAlpha(temp.get()));
     if (!surf) {
         std::cerr << "Error converting to display format: "
             << "\n    " << IMG_GetError() << '\n';
@@ -230,7 +269,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     atexit(IMG_Quit);
 
     // Have to do this prior to SetVideoMode.
-    SdlSurface icon(IMG_Load("../img/icon.png"), SDL_FreeSurface);
+    auto icon = make_surface(IMG_Load("../img/icon.png"));
     if (icon != nullptr) {
         SDL_WM_SetIcon(icon.get(), nullptr);
     }
@@ -318,6 +357,15 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
             std::cout << h << ',';
         }
         std::cout << '\n';
+    }
+
+    auto adjacencyList = regionNeighbors(terrain);
+    int count = 0;
+    for (const auto &neighbors : adjacencyList) {
+        std::cout << count << ": ";
+        for_each(std::begin(neighbors), std::end(neighbors), [] (int n) { std::cout << n << ','; });
+        std::cout << '\n';
+        ++count;
     }
 
     return 0;
