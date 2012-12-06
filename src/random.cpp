@@ -126,6 +126,59 @@ std::vector<Point> hexNeighbors(const Point &hex)
     return hv;
 }
 
+// Same as hexNeighbors() but with array indexes instead of hex coordinates.
+std::vector<int> aryNeighbors(int aIndex)
+{
+    std::vector<int> av;
+
+    if (aIndex >= mapWidth) {  // below the top row
+        // north
+        av.push_back(aIndex - mapWidth);
+    }
+    if (aIndex < mapSize - mapWidth) {  // above the bottom row
+        // south
+        av.push_back(aIndex + mapWidth);
+    }
+    if (aIndex % mapWidth > 0) {  // not in the left column
+        if (aIndex % 2 == 0) {
+            if (aIndex >= mapWidth) {
+                // northwest, even column
+                av.push_back(aIndex - mapWidth - 1);
+            }
+            // southwest, even column
+            av.push_back(aIndex - 1);
+        }
+        else {
+            // northwest, odd column
+            av.push_back(aIndex - 1);
+            if (aIndex < mapSize - mapWidth) {
+                // southwest, odd column
+                av.push_back(aIndex + mapWidth - 1);
+            }
+        }
+    }
+    if (aIndex % mapWidth < mapWidth - 1) {  // not in the right column
+        if (aIndex % 2 == 0) {
+            if (aIndex >= mapWidth) {
+                // northeast, even column
+                av.push_back(aIndex - mapWidth + 1);
+            }
+            // southeast, even column
+            av.push_back(aIndex + 1);
+        }
+        else {
+            // northeast, odd column
+            av.push_back(aIndex + 1);
+            if (aIndex < mapSize - mapWidth) {
+                // southeast, odd column
+                av.push_back(aIndex + mapWidth + 1);
+            }
+        }
+    }
+
+    return av;
+}
+
 // Return the index of the closest center point to the given hex (x,y).
 int findClosest(Sint16 x, Sint16 y, const std::vector<Point> &centers)
 {
@@ -201,6 +254,10 @@ std::vector<int> voronoi()
         }
     }
 
+    // TODO: this occasionally results in 1-hex islands that don't match the
+    // surrounding terrain.  Look for them and reassign them to one of their
+    // neighbors.
+
     return regions;
 }
 
@@ -213,8 +270,8 @@ std::vector<std::vector<int>> regionNeighbors(const std::vector<int> &regions)
         int reg = regions[i];
         assert(reg >= 0 && reg < numRegions);
 
-        for (const auto &hn : hexNeighbors(hexFromAry(i))) {
-            int neighborReg = regions[aryFromHex(hn)];
+        for (const auto &an : aryNeighbors(i)) {
+            int neighborReg = regions[an];
             // If an adjacent hex is in a different region and we haven't
             // already recorded that region as a neighbor, save it.
             if (neighborReg != reg && find(std::begin(ret[reg]),
@@ -352,9 +409,13 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     // TODO: unit test?
     for (int i = 0; i < 2; ++i) {
         auto hex = hexRandom();
+        auto aryN = aryNeighbors(aryFromHex(hex));
+        auto hexN = hexNeighbors(hex);
+        assert(aryN.size() == hexN.size());
         std::cout << hex << " neighbors are ";
-        for (auto &h : hexNeighbors(hex)) {
-            std::cout << h << ',';
+        for (unsigned int i = 0; i < hexN.size(); ++i) {
+            std::cout << hexN[i] << ',';
+            assert(aryFromHex(hexN[i]) == aryN[i]);
         }
         std::cout << '\n';
     }
