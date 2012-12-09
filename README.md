@@ -12,7 +12,8 @@ post](http://www-cs-students.stanford.edu/~amitp/game-programming/polygon-map-ge
 about Voronoi Diagrams being used for random map generation.  I'm surprised I
 never learned about them in school because they're quite useful.  I wanted to
 see if this idea could be scaled down to a hexagonal tile map.  I think the
-results were pretty good.
+results were pretty good.  The program generates n random regions and assigns
+terrain types using a greedy graph coloring algorithm.
 
 ![screenshot](https://raw.github.com/mkristofik/libsdl-demos/master/random_screen.jpg)
 

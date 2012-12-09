@@ -14,6 +14,7 @@
 #include "SDL_image.h"
 
 #include <algorithm>
+#include <bitset>
 #include <cassert>
 #include <cstdlib>
 #include <ctime>
@@ -31,8 +32,10 @@ const Sint16 hexSize = 72;
 const Sint16 mapWidth = 16;
 const Sint16 mapHeight = 9;
 const Sint16 mapSize = mapWidth * mapHeight;
-const int numRegions = 6;  // chose 6 because we have 6 types of terrain.
-// TODO: use graph coloring algorithm to assign terrain types
+const int numRegions = 18;
+const int numTerrains = 6;
+const Point hInvalid = {-1, -1};
+const Sint16 maxDist = mapSize + 1;
 // TODO: use h prefix for hex coordinates, p for pixel coordinates, a for array index
 
 SDL_Surface *screen = nullptr;
@@ -66,12 +69,25 @@ Point hexRandom()
     return hexFromAry(aRand);
 }
 
-// source: http://playtechs.blogspot.com/2007/04/hex-grids.html
+// source: Battle for Wesnoth, distance_between() in map_location.cpp.
 Sint16 hexDist(const Point &lhs, const Point &rhs)
 {
-    Sint16 dx = lhs.first - rhs.first;
-    Sint16 dy = lhs.second - rhs.second;
-    return (abs(dx) + abs(dy) + abs(dx + dy)) / 2;
+    if (lhs == hInvalid || rhs == hInvalid) {
+        return maxDist;
+    }
+
+    Sint16 dx = abs(lhs.first - rhs.first);
+    Sint16 dy = abs(lhs.second - rhs.second);
+
+    // Since the x-axis of the hex grid is staggered, we need to add a step in
+    // certain cases.
+    Sint16 vPenalty = 0;
+    if ((lhs.second < rhs.second && lhs.first % 2 == 0 && rhs.first % 2 == 1) ||
+        (lhs.second > rhs.second && lhs.first % 2 == 1 && rhs.first % 2 == 0)) {
+        vPenalty = 1;
+    }
+
+    return std::max<Sint16>(dx, dy + vPenalty + dx / 2);
 }
 
 std::vector<Point> hexNeighbors(const Point &hex)
@@ -183,7 +199,7 @@ std::vector<int> aryNeighbors(int aIndex)
 int findClosest(Sint16 x, Sint16 y, const std::vector<Point> &centers)
 {
     int closest = -1;
-    Sint16 bestSoFar = mapSize + 1;
+    Sint16 bestSoFar = maxDist;
 
     for (int i = 0; i < numRegions; ++i) {
         Sint16 dist = hexDist(Point(x, y), centers[i]);
@@ -201,7 +217,7 @@ std::vector<Point> getCenters(const std::vector<int> &regions)
 {
     std::vector<Point> positionSums(numRegions);
     std::vector<int> numHexes(numRegions);
-    std::vector<Point> centers(numRegions);
+    std::vector<Point> centers(numRegions, hInvalid);
 
     for (Sint16 x = 0; x < mapWidth; ++x) {
         for (Sint16 y = 0; y < mapHeight; ++y) {
@@ -216,10 +232,15 @@ std::vector<Point> getCenters(const std::vector<int> &regions)
     }
 
     for (int i = 0; i < numRegions; ++i) {
-        auto &c = centers[i];
-        auto &p = positionSums[i];
-        c.first = p.first / numHexes[i];
-        c.second = p.second / numHexes[i];
+        // The voronoi algorithm sometimes leads to regions being "absorbed" by
+        // their neighbors, leaving no hexes left.  Leave the default (invalid)
+        // center hex in place for such a region.
+        if (numHexes[i] > 0) {
+            auto &c = centers[i];
+            auto &p = positionSums[i];
+            c.first = p.first / numHexes[i];
+            c.second = p.second / numHexes[i];
+        }
     }
 
     return centers;
@@ -227,14 +248,15 @@ std::vector<Point> getCenters(const std::vector<int> &regions)
 
 std::vector<int> voronoi()
 {
-    // Start with a set of random center points.
+    // Start with a set of random center points.  Don't worry if there are
+    // duplicates.
     std::vector<Point> centers;
     for (int i = 0; i < numRegions; ++i) {
-        centers.emplace_back(hexRandom());
+        centers.push_back(hexRandom());
     }
 
     std::vector<int> regions(mapSize);
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 4; ++i) {
         // Find the closest center to each point on the map, number those
         // regions.
         for (Sint16 x = 0; x < mapWidth; ++x) {
@@ -254,13 +276,10 @@ std::vector<int> voronoi()
         }
     }
 
-    // TODO: this occasionally results in 1-hex islands that don't match the
-    // surrounding terrain.  Look for them and reassign them to one of their
-    // neighbors.
-
     return regions;
 }
 
+// Construct an adjacency list for each region.
 std::vector<std::vector<int>> regionNeighbors(const std::vector<int> &regions)
 {
     assert(regions.size() == unsigned(mapSize));
@@ -283,6 +302,38 @@ std::vector<std::vector<int>> regionNeighbors(const std::vector<int> &regions)
     }
 
     return ret;
+}
+
+// Assign a terrain type to each region using the given adjacency list.
+std::vector<int> assignTerrain(const std::vector<std::vector<int>> &adj)
+{
+    std::vector<int> terrain(numRegions, -1);
+
+    // Greedy coloring.  Each region gets a different terrain from its
+    // neighbors, using the lowest number available.
+    for (int i = 0; i < numRegions; ++i) {
+        // For each neighboring region, save which terrains have been assigned.
+        std::bitset<numTerrains> assignedTerrains;
+        for (auto n : adj[i]) {
+            assert(n >= 0 && n < numRegions);
+            if (terrain[n] > -1) {
+                assignedTerrains[terrain[n]] = true;
+            }
+        }
+        if (!assignedTerrains.all()) {
+            for (int j = 0; j < numTerrains; ++j) {
+                if (!assignedTerrains[j]) {
+                    terrain[i] = j;
+                    break;
+                }
+            }
+        }
+        else {
+            terrain[i] = 0;
+        }
+    }
+
+    return terrain;
 }
 
 void sdlBlit(const SdlSurface &surf, Sint16 x, Sint16 y)
@@ -342,19 +393,21 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     SDL_WM_SetCaption("Random Map Test", "");
 
     std::vector<SdlSurface> tiles;
-    tiles.emplace_back(sdlLoadImage("../img/grass.png"));
-    tiles.emplace_back(sdlLoadImage("../img/dirt.png"));
-    tiles.emplace_back(sdlLoadImage("../img/swamp.png"));
-    tiles.emplace_back(sdlLoadImage("../img/snow.png"));
-    tiles.emplace_back(sdlLoadImage("../img/desert.png"));
-    tiles.emplace_back(sdlLoadImage("../img/water.png"));
+    tiles.push_back(sdlLoadImage("../img/grass.png"));
+    tiles.push_back(sdlLoadImage("../img/dirt.png"));
+    tiles.push_back(sdlLoadImage("../img/desert.png"));
+    tiles.push_back(sdlLoadImage("../img/water.png"));
+    tiles.push_back(sdlLoadImage("../img/swamp.png"));
+    tiles.push_back(sdlLoadImage("../img/snow.png"));
 
-    auto terrain = voronoi();
+    auto regions = voronoi();
+    auto adjacencyList = regionNeighbors(regions);
+    auto terrain = assignTerrain(adjacencyList);
 
     // Display even-numbered columns.
     for (Sint16 x = 0; x < mapWidth; x += 2) {
         for (Sint16 y = 0; y < mapHeight; ++y) {
-            auto terrainIndex = terrain[y * mapWidth + x];
+            auto terrainIndex = terrain[regions[y * mapWidth + x]];
             sdlBlit(tiles[terrainIndex], x * hexSize * 0.75, y * hexSize);
         }
     }
@@ -362,7 +415,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     // Display odd-numbered columns.
     for (Sint16 x = 1; x < mapWidth; x += 2) {
         for (Sint16 y = 0; y < mapHeight; ++y) {
-            auto terrainIndex = terrain[y * mapWidth + x];
+            auto terrainIndex = terrain[regions[y * mapWidth + x]];
             sdlBlit(tiles[terrainIndex], x * hexSize * 0.75, (y+0.5) * hexSize);
         }
     }
@@ -371,25 +424,25 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     for (Sint16 y = -1; y < mapHeight; ++y) {  // left edge, x = -1
         int terrainX = 0;
         int terrainY = std::min(y + 1, mapHeight - 1);
-        auto terrainIndex = terrain[terrainY * mapWidth + terrainX];
+        auto terrainIndex = terrain[regions[terrainY * mapWidth + terrainX]];
         sdlBlit(tiles[terrainIndex], -0.75 * hexSize, (y+0.5) * hexSize);
     }
     for (Sint16 x = 1; x < mapWidth; x += 2) {  // top edge, y = -1
         int terrainX = x;
         int terrainY = 0;
-        auto terrainIndex = terrain[terrainY * mapWidth + terrainX];
+        auto terrainIndex = terrain[regions[terrainY * mapWidth + terrainX]];
         sdlBlit(tiles[terrainIndex], x * hexSize * 0.75, -0.5 * hexSize);
     }
     for (Sint16 y = 0; y < mapHeight + 1; ++y) {  // right edge, x = mapWidth
         int terrainX = mapWidth - 1;
         int terrainY = std::min<int>(y, mapHeight - 1);
-        auto terrainIndex = terrain[terrainY * mapWidth + terrainX];
+        auto terrainIndex = terrain[regions[terrainY * mapWidth + terrainX]];
         sdlBlit(tiles[terrainIndex], mapWidth * hexSize * 0.75, y * hexSize);
     }
     for (Sint16 x = 0; x < mapWidth; x += 2) {  // bottom edge, y = mapHeight
         int terrainX = x;
         int terrainY = mapHeight - 1;
-        auto terrainIndex = terrain[terrainY * mapWidth + terrainX];
+        auto terrainIndex = terrain[regions[terrainY * mapWidth + terrainX]];
         sdlBlit(tiles[terrainIndex], x * hexSize * 0.75, mapHeight * hexSize);
     }
 
@@ -406,7 +459,12 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
         SDL_Delay(1);
     }
 
-    // TODO: unit test?
+    // TODO: unit tests?
+    assert(hexDist({1, 1}, {2, 2}) == 1);
+    assert(hexDist({4, 4}, {3, 3}) == 1);
+    assert(hexDist({1, 1}, {3, 3}) == 3);
+    assert(hexDist({7, 7}, {5, 5}) == 3);
+
     for (int i = 0; i < 2; ++i) {
         auto hex = hexRandom();
         auto aryN = aryNeighbors(aryFromHex(hex));
@@ -420,7 +478,6 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
         std::cout << '\n';
     }
 
-    auto adjacencyList = regionNeighbors(terrain);
     int count = 0;
     for (const auto &neighbors : adjacencyList) {
         std::cout << count << ": ";
