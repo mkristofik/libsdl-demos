@@ -19,6 +19,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <random>
 #include <stdexcept>
@@ -28,15 +29,19 @@
 using SdlSurface = std::shared_ptr<SDL_Surface>;
 using Point = std::pair<Sint16, Sint16>;
 
+// Experiment with Apps Hungarian notation:
+// a = hex number as an array index
+// h = hex coordinate
+// p = pixel coordinate
+// r = region number
+
 const Sint16 hexSize = 72;
-const Sint16 mapWidth = 16;
-const Sint16 mapHeight = 9;
-const Sint16 mapSize = mapWidth * mapHeight;
+const Sint16 hMapWidth = 16;
+const Sint16 hMapHeight = 9;
+const Sint16 hMapSize = hMapWidth * hMapHeight;
 const int numRegions = 18;
 const int numTerrains = 6;
 const Point hInvalid = {-1, -1};
-const Sint16 maxDist = mapSize + 1;
-// TODO: use h prefix for hex coordinates, p for pixel coordinates, a for array index
 
 SDL_Surface *screen = nullptr;
 
@@ -53,37 +58,42 @@ std::ostream & operator<<(std::ostream &os, const Point &p)
 
 Point hexFromAry(int aIndex)
 {
-    return std::make_pair(aIndex % mapWidth, aIndex / mapWidth);
+    return std::make_pair(aIndex % hMapWidth, aIndex / hMapWidth);
 }
 
 int aryFromHex(const Point &hex)
 {
-    return hex.second * mapWidth + hex.first;
+    return hex.second * hMapWidth + hex.first;
+}
+
+int aryFromHex(Sint16 hx, Sint16 hy)
+{
+    return hy * hMapWidth + hx;
 }
 
 Point hexRandom()
 {
     static std::minstd_rand gen(static_cast<unsigned int>(std::time(nullptr)));
-    static std::uniform_int_distribution<Sint16> dist(0, mapWidth * mapHeight - 1);
+    static std::uniform_int_distribution<Sint16> dist(0, hMapWidth * hMapHeight - 1);
     Sint16 aRand = dist(gen);
     return hexFromAry(aRand);
 }
 
 // source: Battle for Wesnoth, distance_between() in map_location.cpp.
-Sint16 hexDist(const Point &lhs, const Point &rhs)
+Sint16 hexDist(const Point &h1, const Point &h2)
 {
-    if (lhs == hInvalid || rhs == hInvalid) {
-        return maxDist;
+    if (h1 == hInvalid || h2 == hInvalid) {
+        return std::numeric_limits<Sint16>::max();
     }
 
-    Sint16 dx = abs(lhs.first - rhs.first);
-    Sint16 dy = abs(lhs.second - rhs.second);
+    Sint16 dx = abs(h1.first - h2.first);
+    Sint16 dy = abs(h1.second - h2.second);
 
     // Since the x-axis of the hex grid is staggered, we need to add a step in
     // certain cases.
     Sint16 vPenalty = 0;
-    if ((lhs.second < rhs.second && lhs.first % 2 == 0 && rhs.first % 2 == 1) ||
-        (lhs.second > rhs.second && lhs.first % 2 == 1 && rhs.first % 2 == 0)) {
+    if ((h1.second < h2.second && h1.first % 2 == 0 && h2.first % 2 == 1) ||
+        (h1.second > h2.second && h1.first % 2 == 1 && h2.first % 2 == 0)) {
         vPenalty = 1;
     }
 
@@ -98,7 +108,7 @@ std::vector<Point> hexNeighbors(const Point &hex)
         // north
         hv.emplace_back(hex.first, hex.second - 1);
     }
-    if (hex.second < mapHeight - 1) {
+    if (hex.second < hMapHeight - 1) {
         // south
         hv.emplace_back(hex.first, hex.second + 1);
     }
@@ -114,13 +124,13 @@ std::vector<Point> hexNeighbors(const Point &hex)
         else {
             // northwest, odd column
             hv.emplace_back(hex.first - 1, hex.second);
-            if (hex.second < mapHeight - 1) {
+            if (hex.second < hMapHeight - 1) {
                 // southwest, odd column
                 hv.emplace_back(hex.first - 1, hex.second + 1);
             }
         }
     }
-    if (hex.first < mapWidth - 1) {
+    if (hex.first < hMapWidth - 1) {
         if (hex.first % 2 == 0) {
             if (hex.second > 0) {
                 // northeast, even column
@@ -132,7 +142,7 @@ std::vector<Point> hexNeighbors(const Point &hex)
         else {
             // northeast, odd column
             hv.emplace_back(hex.first + 1, hex.second);
-            if (hex.second < mapHeight - 1) {
+            if (hex.second < hMapHeight - 1) {
                 // southeast, odd column
                 hv.emplace_back(hex.first + 1, hex.second + 1);
             }
@@ -147,19 +157,19 @@ std::vector<int> aryNeighbors(int aIndex)
 {
     std::vector<int> av;
 
-    if (aIndex >= mapWidth) {  // below the top row
+    if (aIndex >= hMapWidth) {  // below the top row
         // north
-        av.push_back(aIndex - mapWidth);
+        av.push_back(aIndex - hMapWidth);
     }
-    if (aIndex < mapSize - mapWidth) {  // above the bottom row
+    if (aIndex < hMapSize - hMapWidth) {  // above the bottom row
         // south
-        av.push_back(aIndex + mapWidth);
+        av.push_back(aIndex + hMapWidth);
     }
-    if (aIndex % mapWidth > 0) {  // not in the left column
+    if (aIndex % hMapWidth > 0) {  // not in the left column
         if (aIndex % 2 == 0) {
-            if (aIndex >= mapWidth) {
+            if (aIndex >= hMapWidth) {
                 // northwest, even column
-                av.push_back(aIndex - mapWidth - 1);
+                av.push_back(aIndex - hMapWidth - 1);
             }
             // southwest, even column
             av.push_back(aIndex - 1);
@@ -167,17 +177,17 @@ std::vector<int> aryNeighbors(int aIndex)
         else {
             // northwest, odd column
             av.push_back(aIndex - 1);
-            if (aIndex < mapSize - mapWidth) {
+            if (aIndex < hMapSize - hMapWidth) {
                 // southwest, odd column
-                av.push_back(aIndex + mapWidth - 1);
+                av.push_back(aIndex + hMapWidth - 1);
             }
         }
     }
-    if (aIndex % mapWidth < mapWidth - 1) {  // not in the right column
+    if (aIndex % hMapWidth < hMapWidth - 1) {  // not in the right column
         if (aIndex % 2 == 0) {
-            if (aIndex >= mapWidth) {
+            if (aIndex >= hMapWidth) {
                 // northeast, even column
-                av.push_back(aIndex - mapWidth + 1);
+                av.push_back(aIndex - hMapWidth + 1);
             }
             // southeast, even column
             av.push_back(aIndex + 1);
@@ -185,9 +195,9 @@ std::vector<int> aryNeighbors(int aIndex)
         else {
             // northeast, odd column
             av.push_back(aIndex + 1);
-            if (aIndex < mapSize - mapWidth) {
+            if (aIndex < hMapSize - hMapWidth) {
                 // southeast, odd column
-                av.push_back(aIndex + mapWidth + 1);
+                av.push_back(aIndex + hMapWidth + 1);
             }
         }
     }
@@ -195,84 +205,86 @@ std::vector<int> aryNeighbors(int aIndex)
     return av;
 }
 
-// Return the index of the closest center point to the given hex (x,y).
-int findClosest(Sint16 x, Sint16 y, const std::vector<Point> &centers)
+// Return the closest region to the given hex (hx,hy).
+int rFindClosest(Sint16 hx, Sint16 hy, const std::vector<Point> &hCenters)
 {
-    int closest = -1;
-    Sint16 bestSoFar = maxDist;
+    int rClosest = -1;
+    Sint16 bestSoFar = std::numeric_limits<Sint16>::max();
 
     for (int i = 0; i < numRegions; ++i) {
-        Sint16 dist = hexDist(Point(x, y), centers[i]);
+        Sint16 dist = hexDist(Point(hx, hy), hCenters[i]);
         if (dist < bestSoFar) {
-            closest = i;
+            rClosest = i;
             bestSoFar = dist;
         }
     }
 
-    return closest;
+    return rClosest;
 }
 
 // Compute the centers of mass of each region.
-std::vector<Point> getCenters(const std::vector<int> &regions)
+std::vector<Point> hGetCenters(const std::vector<int> &regions)
 {
-    std::vector<Point> positionSums(numRegions);
+    std::vector<Point> hexSums(numRegions);
     std::vector<int> numHexes(numRegions);
-    std::vector<Point> centers(numRegions, hInvalid);
+    std::vector<Point> hCenters(numRegions, hInvalid);
 
-    for (Sint16 x = 0; x < mapWidth; ++x) {
-        for (Sint16 y = 0; y < mapHeight; ++y) {
-            int region = regions[y * mapWidth + x];
+    assert(regions.size() == unsigned(hMapSize));
+    for (Sint16 hx = 0; hx < hMapWidth; ++hx) {
+        for (Sint16 hy = 0; hy < hMapHeight; ++hy) {
+            int region = regions[hy * hMapWidth + hx];
             assert(region >= 0 && region < numRegions);
 
-            auto &p = positionSums[region];
-            p.first += x;
-            p.second += y;
+            auto &hs = hexSums[region];
+            hs.first += hx;
+            hs.second += hy;
             ++numHexes[region];
         }
     }
 
-    for (int i = 0; i < numRegions; ++i) {
+    for (int r = 0; r < numRegions; ++r) {
         // The voronoi algorithm sometimes leads to regions being "absorbed" by
         // their neighbors, leaving no hexes left.  Leave the default (invalid)
         // center hex in place for such a region.
-        if (numHexes[i] > 0) {
-            auto &c = centers[i];
-            auto &p = positionSums[i];
-            c.first = p.first / numHexes[i];
-            c.second = p.second / numHexes[i];
+        if (numHexes[r] > 0) {
+            auto &hc = hCenters[r];
+            auto &hs = hexSums[r];
+            hc.first = hs.first / numHexes[r];
+            hc.second = hs.second / numHexes[r];
         }
     }
 
-    return centers;
+    return hCenters;
 }
 
-std::vector<int> voronoi()
+// Use a voronoi diagram to generate a random set of regions.
+std::vector<int> rGenerate()
 {
     // Start with a set of random center points.  Don't worry if there are
     // duplicates.
-    std::vector<Point> centers;
-    for (int i = 0; i < numRegions; ++i) {
-        centers.push_back(hexRandom());
+    std::vector<Point> hCenters;
+    for (int r = 0; r < numRegions; ++r) {
+        hCenters.push_back(hexRandom());
     }
 
-    std::vector<int> regions(mapSize);
+    std::vector<int> regions(hMapSize);
     for (int i = 0; i < 4; ++i) {
-        // Find the closest center to each point on the map, number those
+        // Find the closest center to each hex on the map, number those
         // regions.
-        for (Sint16 x = 0; x < mapWidth; ++x) {
-            for (Sint16 y = 0; y < mapHeight; ++y) {
-                regions[y * mapWidth + x] = findClosest(x, y, centers);
+        for (Sint16 hx = 0; hx < hMapWidth; ++hx) {
+            for (Sint16 hy = 0; hy < hMapHeight; ++hy) {
+                regions[hy * hMapWidth + hx] = rFindClosest(hx, hy, hCenters);
             }
         }
 
-        centers = getCenters(regions);
+        hCenters = hGetCenters(regions);
         // Repeat this process to make more regular-looking regions.
     }
 
     // Assign each hex to its final region.
-    for (Sint16 x = 0; x < mapWidth; ++x) {
-        for (Sint16 y = 0; y < mapHeight; ++y) {
-            regions[y * mapWidth + x] = findClosest(x, y, centers);
+    for (Sint16 hx = 0; hx < hMapWidth; ++hx) {
+        for (Sint16 hy = 0; hy < hMapHeight; ++hy) {
+            regions[hy * hMapWidth + hx] = rFindClosest(hx, hy, hCenters);
         }
     }
 
@@ -282,21 +294,21 @@ std::vector<int> voronoi()
 // Construct an adjacency list for each region.
 std::vector<std::vector<int>> regionNeighbors(const std::vector<int> &regions)
 {
-    assert(regions.size() == unsigned(mapSize));
+    assert(regions.size() == unsigned(hMapSize));
 
     std::vector<std::vector<int>> ret(numRegions);
-    for (int i = 0; i < mapSize; ++i) {
+    for (int i = 0; i < hMapSize; ++i) {
         int reg = regions[i];
         assert(reg >= 0 && reg < numRegions);
 
         for (const auto &an : aryNeighbors(i)) {
-            int neighborReg = regions[an];
+            int rNeighbor = regions[an];
             // If an adjacent hex is in a different region and we haven't
             // already recorded that region as a neighbor, save it.
-            if (neighborReg != reg && find(std::begin(ret[reg]),
-                                           std::end(ret[reg]),
-                                           neighborReg) == std::end(ret[reg])) {
-                ret[reg].push_back(neighborReg);
+            if (rNeighbor != reg && find(std::begin(ret[reg]),
+                                         std::end(ret[reg]),
+                                         rNeighbor) == std::end(ret[reg])) {
+                ret[reg].push_back(rNeighbor);
             }
         }
     }
@@ -311,35 +323,35 @@ std::vector<int> assignTerrain(const std::vector<std::vector<int>> &adj)
 
     // Greedy coloring.  Each region gets a different terrain from its
     // neighbors, using the lowest number available.
-    for (int i = 0; i < numRegions; ++i) {
+    for (int r = 0; r < numRegions; ++r) {
         // For each neighboring region, save which terrains have been assigned.
         std::bitset<numTerrains> assignedTerrains;
-        for (auto n : adj[i]) {
-            assert(n >= 0 && n < numRegions);
-            if (terrain[n] > -1) {
-                assignedTerrains[terrain[n]] = true;
+        for (auto rNeighbor : adj[r]) {
+            assert(rNeighbor >= 0 && rNeighbor < numRegions);
+            if (terrain[rNeighbor] > -1) {
+                assignedTerrains[terrain[rNeighbor]] = true;
             }
         }
         if (!assignedTerrains.all()) {
-            for (int j = 0; j < numTerrains; ++j) {
-                if (!assignedTerrains[j]) {
-                    terrain[i] = j;
+            for (int t = 0; t < numTerrains; ++t) {
+                if (!assignedTerrains[t]) {
+                    terrain[r] = t;
                     break;
                 }
             }
         }
         else {
-            terrain[i] = 0;
+            terrain[r] = 0;
         }
     }
 
     return terrain;
 }
 
-void sdlBlit(const SdlSurface &surf, Sint16 x, Sint16 y)
+void sdlBlit(const SdlSurface &surf, Sint16 px, Sint16 py)
 {
     assert(screen != nullptr);
-    SDL_Rect dest = {x, y, 0, 0};
+    SDL_Rect dest = {px, py, 0, 0};
     if (SDL_BlitSurface(surf.get(), nullptr, screen, &dest) < 0) {
         std::cerr << "Warning: error drawing to screen: " << SDL_GetError();
     }
@@ -400,50 +412,52 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     tiles.push_back(sdlLoadImage("../img/swamp.png"));
     tiles.push_back(sdlLoadImage("../img/snow.png"));
 
-    auto regions = voronoi();
+    auto regions = rGenerate();
     auto adjacencyList = regionNeighbors(regions);
     auto terrain = assignTerrain(adjacencyList);
 
     // Display even-numbered columns.
-    for (Sint16 x = 0; x < mapWidth; x += 2) {
-        for (Sint16 y = 0; y < mapHeight; ++y) {
-            auto terrainIndex = terrain[regions[y * mapWidth + x]];
-            sdlBlit(tiles[terrainIndex], x * hexSize * 0.75, y * hexSize);
+    for (Sint16 hx = 0; hx < hMapWidth; hx += 2) {
+        for (Sint16 hy = 0; hy < hMapHeight; ++hy) {
+            auto terrainIndex = terrain[regions[aryFromHex(hx, hy)]];
+            sdlBlit(tiles[terrainIndex], hx * hexSize * 0.75, hy * hexSize);
         }
     }
 
     // Display odd-numbered columns.
-    for (Sint16 x = 1; x < mapWidth; x += 2) {
-        for (Sint16 y = 0; y < mapHeight; ++y) {
-            auto terrainIndex = terrain[regions[y * mapWidth + x]];
-            sdlBlit(tiles[terrainIndex], x * hexSize * 0.75, (y+0.5) * hexSize);
+    for (Sint16 hx = 1; hx < hMapWidth; hx += 2) {
+        for (Sint16 hy = 0; hy < hMapHeight; ++hy) {
+            auto terrainIndex = terrain[regions[aryFromHex(hx, hy)]];
+            sdlBlit(tiles[terrainIndex], hx * hexSize * 0.75, (hy+0.5) * hexSize);
         }
     }
 
-    // Overdraw so we don't get jagged edges.
-    for (Sint16 y = -1; y < mapHeight; ++y) {  // left edge, x = -1
-        int terrainX = 0;
-        int terrainY = std::min(y + 1, mapHeight - 1);
-        auto terrainIndex = terrain[regions[terrainY * mapWidth + terrainX]];
-        sdlBlit(tiles[terrainIndex], -0.75 * hexSize, (y+0.5) * hexSize);
+    // Overdraw so we don't get jagged edges, copying from neighboring hexes.
+
+    // left edge, hx = -1
+    for (Sint16 hy = -1; hy < hMapHeight; ++hy) {
+        auto aNeighbor = aryFromHex(0, std::min(hy + 1, hMapHeight - 1));
+        auto terrainIndex = terrain[regions[aNeighbor]];
+        sdlBlit(tiles[terrainIndex], -0.75 * hexSize, (hy+0.5) * hexSize);
     }
-    for (Sint16 x = 1; x < mapWidth; x += 2) {  // top edge, y = -1
-        int terrainX = x;
-        int terrainY = 0;
-        auto terrainIndex = terrain[regions[terrainY * mapWidth + terrainX]];
-        sdlBlit(tiles[terrainIndex], x * hexSize * 0.75, -0.5 * hexSize);
+    // top edge, hy = -1
+    for (Sint16 hx = 1; hx < hMapWidth; hx += 2) {
+        auto aNeighbor = aryFromHex(hx, 0);
+        auto terrainIndex = terrain[regions[aNeighbor]];
+        sdlBlit(tiles[terrainIndex], hx * hexSize * 0.75, -0.5 * hexSize);
     }
-    for (Sint16 y = 0; y < mapHeight + 1; ++y) {  // right edge, x = mapWidth
-        int terrainX = mapWidth - 1;
-        int terrainY = std::min<int>(y, mapHeight - 1);
-        auto terrainIndex = terrain[regions[terrainY * mapWidth + terrainX]];
-        sdlBlit(tiles[terrainIndex], mapWidth * hexSize * 0.75, y * hexSize);
+    // right edge, hx = hMapWidth
+    for (Sint16 hy = 0; hy < hMapHeight + 1; ++hy) {
+        auto aNeighbor = aryFromHex(hMapWidth - 1,
+                                    std::min<int>(hy, hMapHeight - 1));
+        auto terrainIndex = terrain[regions[aNeighbor]];
+        sdlBlit(tiles[terrainIndex], hMapWidth * hexSize * 0.75, hy * hexSize);
     }
-    for (Sint16 x = 0; x < mapWidth; x += 2) {  // bottom edge, y = mapHeight
-        int terrainX = x;
-        int terrainY = mapHeight - 1;
-        auto terrainIndex = terrain[regions[terrainY * mapWidth + terrainX]];
-        sdlBlit(tiles[terrainIndex], x * hexSize * 0.75, mapHeight * hexSize);
+    // bottom edge, hy = hMapHeight
+    for (Sint16 hx = 0; hx < hMapWidth; hx += 2) {
+        auto aNeighbor = aryFromHex(hx, hMapHeight - 1);
+        auto terrainIndex = terrain[regions[aNeighbor]];
+        sdlBlit(tiles[terrainIndex], hx * hexSize * 0.75, hMapHeight * hexSize);
     }
 
     SDL_UpdateRect(screen, 0, 0, 0, 0);
@@ -479,12 +493,13 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     }
 
     int count = 0;
-    for (const auto &neighbors : adjacencyList) {
+    for (const auto &hNeighbors : adjacencyList) {
         std::cout << count << ": ";
-        for_each(std::begin(neighbors), std::end(neighbors), [] (int n) { std::cout << n << ','; });
+        for_each(std::begin(hNeighbors), std::end(hNeighbors),
+                 [] (int hn) { std::cout << hn << ','; });
         std::cout << '\n';
         ++count;
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }
