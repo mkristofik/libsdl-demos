@@ -41,5 +41,5 @@ draw, and I can't.
 
 ### License
 
-Copyright 2012 by Michael Kristofik  
+Copyright 2012-2013 by Michael Kristofik  
 The license for code and art assets is described in the file COPYING.txt.

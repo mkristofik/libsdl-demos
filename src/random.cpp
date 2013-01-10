@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2012 by Michael Kristofik <kristo605@gmail.com>
+    Copyright (C) 2012-2013 by Michael Kristofik <kristo605@gmail.com>
     Part of the libsdl-demos project.
  
     This program is free software; you can redistribute it and/or modify
