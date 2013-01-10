@@ -58,7 +58,7 @@ std::ostream & operator<<(std::ostream &os, const Point &p)
 
 Point hexFromAry(int aIndex)
 {
-    return std::make_pair(aIndex % hMapWidth, aIndex / hMapWidth);
+    return {aIndex % hMapWidth, aIndex / hMapWidth};
 }
 
 int aryFromHex(const Point &hex)
@@ -203,6 +203,68 @@ std::vector<int> aryNeighbors(int aIndex)
     }
 
     return av;
+}
+
+// Return the array index of a neighbor tile in the given direction (0 = north,
+// 1 = northeast, etc.).  Return -1 if no tile exists in that direction.
+int aryGetNeighbor(int aIndex, int dir)
+{
+    assert(dir >= 0 && dir < 6);
+
+    // North, below the top row.
+    if (dir == 0 && aIndex >= hMapWidth) {
+        return aIndex - hMapWidth;
+    }
+    // Northeast, not in the right column.
+    else if (dir == 1 && aIndex % hMapWidth < hMapWidth - 1) {
+        if (aIndex % 2 == 0) {
+            if (aIndex >= hMapWidth) {
+                return aIndex - hMapWidth + 1;
+            }
+        }
+        else {
+            return aIndex + 1;
+        }
+    }
+    // Southeast, not in the right column.
+    else if (dir == 2 && aIndex % hMapWidth < hMapWidth - 1) {
+        if (aIndex % 2 == 0) {
+            return aIndex + 1;
+        }
+        else {
+            if (aIndex < hMapSize - hMapWidth) {
+                return aIndex + hMapWidth + 1;
+            }
+        }
+    }
+    // South, above the bottom row.
+    else if (dir == 3 && aIndex < hMapSize - hMapWidth) {
+        return aIndex + hMapWidth;
+    }
+    // Southwest, not in the left column.
+    else if (dir == 4 && aIndex % hMapWidth > 0) {
+        if (aIndex % 2 == 0) {
+            return aIndex - 1;
+        }
+        else {
+            if (aIndex < hMapSize - hMapWidth) {
+                return aIndex + hMapWidth - 1;
+            }
+        }
+    }
+    // Northwest, not in the left column.
+    else if (dir == 5 && aIndex % hMapWidth > 0) {
+        if (aIndex % 2 == 0) {
+            if (aIndex >= hMapWidth) {
+                return aIndex - hMapWidth - 1;
+            }
+        }
+        else {
+            return aIndex - 1;
+        }
+    }
+
+    return -1;
 }
 
 // Return the closest region to the given hex (hx,hy).
@@ -412,6 +474,14 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     tiles.push_back(sdlLoadImage("../img/swamp.png"));
     tiles.push_back(sdlLoadImage("../img/snow.png"));
 
+    std::vector<SdlSurface> edges;
+    edges.push_back(sdlLoadImage("../img/beach-n.png"));
+    edges.push_back(sdlLoadImage("../img/beach-ne.png"));
+    edges.push_back(sdlLoadImage("../img/beach-se.png"));
+    edges.push_back(sdlLoadImage("../img/beach-s.png"));
+    edges.push_back(sdlLoadImage("../img/beach-sw.png"));
+    edges.push_back(sdlLoadImage("../img/beach-nw.png"));
+
     auto regions = rGenerate();
     auto adjacencyList = regionNeighbors(regions);
     auto terrain = assignTerrain(adjacencyList);
@@ -419,19 +489,52 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     // Display even-numbered columns.
     for (Sint16 hx = 0; hx < hMapWidth; hx += 2) {
         for (Sint16 hy = 0; hy < hMapHeight; ++hy) {
-            auto terrainIndex = terrain[regions[aryFromHex(hx, hy)]];
+            auto aPos = aryFromHex(hx, hy);
+            auto terrainIndex = terrain[regions[aPos]];
             sdlBlit(tiles[terrainIndex], hx * hexSize * 0.75, hy * hexSize);
+            if (terrainIndex == 3) {  // water
+                for (auto dir = 0; dir < 6; ++dir) {
+                    auto aNeighbor = aryGetNeighbor(aPos, dir);
+                    if (aNeighbor >= 0 && terrain[regions[aNeighbor]] != 3) {
+                        sdlBlit(edges[dir], hx * hexSize * 0.75, hy * hexSize);
+                    }
+                }
+            }
+            if (terrainIndex != 3) {  // not water
+                for (auto dir = 0; dir < 6; ++dir) {
+                    auto aNeighbor = aryGetNeighbor(aPos, dir);
+                    if (aNeighbor >= 0 && terrain[regions[aNeighbor]] == 3) {
+                        sdlBlit(edges[dir], hx * hexSize * 0.75, hy * hexSize);
+                    }
+                }
+            }
         }
     }
 
     // Display odd-numbered columns.
     for (Sint16 hx = 1; hx < hMapWidth; hx += 2) {
         for (Sint16 hy = 0; hy < hMapHeight; ++hy) {
-            auto terrainIndex = terrain[regions[aryFromHex(hx, hy)]];
+            auto aPos = aryFromHex(hx, hy);
+            auto terrainIndex = terrain[regions[aPos]];
             sdlBlit(tiles[terrainIndex], hx * hexSize * 0.75, (hy+0.5) * hexSize);
+            if (terrainIndex == 3) {  // water
+                for (auto dir = 0; dir < 6; ++dir) {
+                    auto aNeighbor = aryGetNeighbor(aPos, dir);
+                    if (aNeighbor >= 0 && terrain[regions[aNeighbor]] != 3) {
+                        sdlBlit(edges[dir], hx * hexSize * 0.75, (hy+0.5) * hexSize);
+                    }
+                }
+            }
+            if (terrainIndex != 3) {  // not water
+                for (auto dir = 0; dir < 6; ++dir) {
+                    auto aNeighbor = aryGetNeighbor(aPos, dir);
+                    if (aNeighbor >= 0 && terrain[regions[aNeighbor]] == 3) {
+                        sdlBlit(edges[dir], hx * hexSize * 0.75, (hy+0.5) * hexSize);
+                    }
+                }
+            }
         }
     }
-
     // Overdraw so we don't get jagged edges, copying from neighboring hexes.
 
     // left edge, hx = -1
