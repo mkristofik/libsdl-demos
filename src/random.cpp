@@ -404,6 +404,18 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     edges.push_back(sdlLoadImage("../img/beach-s.png"));
     edges.push_back(sdlLoadImage("../img/beach-sw.png"));
     edges.push_back(sdlLoadImage("../img/beach-nw.png"));
+    edges.push_back(sdlLoadImage("../img/grass-n.png"));
+    edges.push_back(sdlLoadImage("../img/grass-ne.png"));
+    edges.push_back(sdlLoadImage("../img/grass-se.png"));
+    edges.push_back(sdlLoadImage("../img/grass-s.png"));
+    edges.push_back(sdlLoadImage("../img/grass-sw.png"));
+    edges.push_back(sdlLoadImage("../img/grass-nw.png"));
+    edges.push_back(sdlLoadImage("../img/dirt-n.png"));
+    edges.push_back(sdlLoadImage("../img/dirt-ne.png"));
+    edges.push_back(sdlLoadImage("../img/dirt-se.png"));
+    edges.push_back(sdlLoadImage("../img/dirt-s.png"));
+    edges.push_back(sdlLoadImage("../img/dirt-sw.png"));
+    edges.push_back(sdlLoadImage("../img/dirt-nw.png"));
 
     auto regions = rGenerate();
     auto adjacencyList = regionNeighbors(regions);
@@ -426,8 +438,22 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
             if (terrainIndex != 3) {  // not water
                 for (auto dir = 0; dir < 6; ++dir) {
                     auto aNeighbor = aryGetNeighbor(aPos, dir);
+                    // neighbor is water, draw beach
                     if (aNeighbor >= 0 && terrain[regions[aNeighbor]] == 3) {
                         sdlBlit(edges[dir], hx * hexSize * 0.75, hy * hexSize);
+                    }
+                    // neighbor is grass, draw dirt
+                    else if (terrainIndex != 0 && aNeighbor >= 0 && terrain[regions[aNeighbor]] == 0) {
+                        sdlBlit(edges[dir+12], hx * hexSize * 0.75, hy * hexSize);
+                    }
+                }
+            }
+            if (terrainIndex == 2 || terrainIndex > 3) {  // desert, swamp, snow
+                for (auto dir = 0; dir < 6; ++dir) {
+                    auto aNeighbor = aryGetNeighbor(aPos, dir);
+                    // neighbor is dirt or grass
+                    if (aNeighbor >= 0 && terrain[regions[aNeighbor]] <= 1) {
+                        sdlBlit(edges[dir+12], hx * hexSize * 0.75, hy * hexSize);
                     }
                 }
             }
@@ -453,6 +479,19 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
                     auto aNeighbor = aryGetNeighbor(aPos, dir);
                     if (aNeighbor >= 0 && terrain[regions[aNeighbor]] == 3) {
                         sdlBlit(edges[dir], hx * hexSize * 0.75, (hy+0.5) * hexSize);
+                    }
+                    // neighbor is grass, draw dirt
+                    else if (terrainIndex != 0 && aNeighbor >= 0 && terrain[regions[aNeighbor]] == 0) {
+                        sdlBlit(edges[dir+12], hx * hexSize * 0.75, (hy+0.5) * hexSize);
+                    }
+                }
+            }
+            if (terrainIndex == 2 || terrainIndex > 3) {  // desert, swamp, snow
+                for (auto dir = 0; dir < 6; ++dir) {
+                    auto aNeighbor = aryGetNeighbor(aPos, dir);
+                    // neighbor is dirt or grass, draw dirt
+                    if (aNeighbor >= 0 && terrain[regions[aNeighbor]] <= 1) {
+                        sdlBlit(edges[dir+12], hx * hexSize * 0.75, (hy+0.5) * hexSize);
                     }
                 }
             }
