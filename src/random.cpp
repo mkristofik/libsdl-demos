@@ -100,111 +100,6 @@ Sint16 hexDist(const Point &h1, const Point &h2)
     return std::max<Sint16>(dx, dy + vPenalty + dx / 2);
 }
 
-std::vector<Point> hexNeighbors(const Point &hex)
-{
-    std::vector<Point> hv;
-
-    if (hex.second > 0) {
-        // north
-        hv.emplace_back(hex.first, hex.second - 1);
-    }
-    if (hex.second < hMapHeight - 1) {
-        // south
-        hv.emplace_back(hex.first, hex.second + 1);
-    }
-    if (hex.first > 0) {
-        if (hex.first % 2 == 0) {
-            if (hex.second > 0) {
-                // northwest, even column
-                hv.emplace_back(hex.first - 1, hex.second - 1);
-            }
-            // southwest, even column
-            hv.emplace_back(hex.first - 1, hex.second);
-        }
-        else {
-            // northwest, odd column
-            hv.emplace_back(hex.first - 1, hex.second);
-            if (hex.second < hMapHeight - 1) {
-                // southwest, odd column
-                hv.emplace_back(hex.first - 1, hex.second + 1);
-            }
-        }
-    }
-    if (hex.first < hMapWidth - 1) {
-        if (hex.first % 2 == 0) {
-            if (hex.second > 0) {
-                // northeast, even column
-                hv.emplace_back(hex.first + 1, hex.second - 1);
-            }
-            // southeast, even column
-            hv.emplace_back(hex.first + 1, hex.second);
-        }
-        else {
-            // northeast, odd column
-            hv.emplace_back(hex.first + 1, hex.second);
-            if (hex.second < hMapHeight - 1) {
-                // southeast, odd column
-                hv.emplace_back(hex.first + 1, hex.second + 1);
-            }
-        }
-    }
-
-    return hv;
-}
-
-// Same as hexNeighbors() but with array indexes instead of hex coordinates.
-std::vector<int> aryNeighbors(int aIndex)
-{
-    std::vector<int> av;
-
-    if (aIndex >= hMapWidth) {  // below the top row
-        // north
-        av.push_back(aIndex - hMapWidth);
-    }
-    if (aIndex < hMapSize - hMapWidth) {  // above the bottom row
-        // south
-        av.push_back(aIndex + hMapWidth);
-    }
-    if (aIndex % hMapWidth > 0) {  // not in the left column
-        if (aIndex % 2 == 0) {
-            if (aIndex >= hMapWidth) {
-                // northwest, even column
-                av.push_back(aIndex - hMapWidth - 1);
-            }
-            // southwest, even column
-            av.push_back(aIndex - 1);
-        }
-        else {
-            // northwest, odd column
-            av.push_back(aIndex - 1);
-            if (aIndex < hMapSize - hMapWidth) {
-                // southwest, odd column
-                av.push_back(aIndex + hMapWidth - 1);
-            }
-        }
-    }
-    if (aIndex % hMapWidth < hMapWidth - 1) {  // not in the right column
-        if (aIndex % 2 == 0) {
-            if (aIndex >= hMapWidth) {
-                // northeast, even column
-                av.push_back(aIndex - hMapWidth + 1);
-            }
-            // southeast, even column
-            av.push_back(aIndex + 1);
-        }
-        else {
-            // northeast, odd column
-            av.push_back(aIndex + 1);
-            if (aIndex < hMapSize - hMapWidth) {
-                // southeast, odd column
-                av.push_back(aIndex + hMapWidth + 1);
-            }
-        }
-    }
-
-    return av;
-}
-
 // Return the array index of a neighbor tile in the given direction (0 = north,
 // 1 = northeast, etc.).  Return -1 if no tile exists in that direction.
 int aryGetNeighbor(int aIndex, int dir)
@@ -216,7 +111,7 @@ int aryGetNeighbor(int aIndex, int dir)
         return aIndex - hMapWidth;
     }
     // Northeast, not in the right column.
-    else if (dir == 1 && aIndex % hMapWidth < hMapWidth - 1) {
+    else if (dir == 1 && (aIndex % hMapWidth < hMapWidth - 1)) {
         if (aIndex % 2 == 0) {
             if (aIndex >= hMapWidth) {
                 return aIndex - hMapWidth + 1;
@@ -227,7 +122,7 @@ int aryGetNeighbor(int aIndex, int dir)
         }
     }
     // Southeast, not in the right column.
-    else if (dir == 2 && aIndex % hMapWidth < hMapWidth - 1) {
+    else if (dir == 2 && (aIndex % hMapWidth < hMapWidth - 1)) {
         if (aIndex % 2 == 0) {
             return aIndex + 1;
         }
@@ -238,11 +133,11 @@ int aryGetNeighbor(int aIndex, int dir)
         }
     }
     // South, above the bottom row.
-    else if (dir == 3 && aIndex < hMapSize - hMapWidth) {
+    else if (dir == 3 && (aIndex < hMapSize - hMapWidth)) {
         return aIndex + hMapWidth;
     }
     // Southwest, not in the left column.
-    else if (dir == 4 && aIndex % hMapWidth > 0) {
+    else if (dir == 4 && (aIndex % hMapWidth > 0)) {
         if (aIndex % 2 == 0) {
             return aIndex - 1;
         }
@@ -253,7 +148,7 @@ int aryGetNeighbor(int aIndex, int dir)
         }
     }
     // Northwest, not in the left column.
-    else if (dir == 5 && aIndex % hMapWidth > 0) {
+    else if (dir == 5 && (aIndex % hMapWidth > 0)) {
         if (aIndex % 2 == 0) {
             if (aIndex >= hMapWidth) {
                 return aIndex - hMapWidth - 1;
@@ -265,6 +160,34 @@ int aryGetNeighbor(int aIndex, int dir)
     }
 
     return -1;
+}
+
+// Compute all neighbors of a given tile.  Result might have size < 6.
+std::vector<int> aryNeighbors(int aIndex)
+{
+    std::vector<int> av;
+
+    for (int dir = 0; dir < 6; ++dir) {
+        auto aNeighbor = aryGetNeighbor(aIndex, dir);
+        if (aNeighbor != -1) {
+            av.push_back(aNeighbor);
+        }
+    }
+
+    return av;
+}
+
+// Same as aryNeighbors() but with hex coordinates instead of array indexes.
+std::vector<Point> hexNeighbors(const Point &hex)
+{
+    std::vector<Point> hv;
+
+    auto av = aryNeighbors(aryFromHex(hex));
+    for (auto aNeighbor : av) {
+        hv.push_back(hexFromAry(aNeighbor));
+    }
+
+    return hv;
 }
 
 // Return the closest region to the given hex (hx,hy).
@@ -584,7 +507,8 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
 
     for (int i = 0; i < 2; ++i) {
         auto hex = hexRandom();
-        auto aryN = aryNeighbors(aryFromHex(hex));
+        auto a = aryFromHex(hex);
+        auto aryN = aryNeighbors(a);
         auto hexN = hexNeighbors(hex);
         assert(aryN.size() == hexN.size());
         std::cout << hex << " neighbors are ";
