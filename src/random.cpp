@@ -494,6 +494,10 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
         sdlBlitAtHex(tiles[terrainIndex], -1, hy);
         // Mirrored hex is to the southeast, so we compute the edge against its
         // north neighbor.
+        //  /N\   N = neighbor
+        // O\_/   O = overdraw area
+        //  /M\   M = mirrored hex
+        //  \_/
         auto aNeighbor = aryGetNeighbor(aMirror, Dir::N);
         if (aNeighbor == -1) continue;
         auto edgeTerrain1 = getEdge(terrainIndex, terrain[aNeighbor]);
@@ -515,7 +519,10 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
         sdlBlitAtHex(tiles[terrainIndex], hx, -1);
         // Mirrored hex is to the south, so we compute the edge against its
         // northwest and northeast neighbors.
-        // Draw edges to the SW and SE.
+        //  _ O _
+        // /N\_/N\   N = neighbors
+        // \_/M\_/   O = overdraw area
+        //   \_/     M = mirrored hex
     }
     // right edge
     for (Sint16 hy = 0; hy < hMapHeight + 1; ++hy) {
@@ -525,7 +532,11 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
         sdlBlitAtHex(tiles[terrainIndex], hMapWidth, hy);
         // Mirrored hex is to the southwest, so we compute the edge against its
         // north neighbor.
-        // Draw edge to the NW.
+        //  _
+        // /N\    N = neighbor
+        // \_/O   O = overdraw area
+        // /M\    M = mirrored hex
+        // \_/
     }
     // bottom edge
     for (Sint16 hx = 0; hx < hMapWidth; hx += 2) {
@@ -534,7 +545,10 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
         sdlBlitAtHex(tiles[terrainIndex], hx, hMapHeight);
         // Mirrored hex is to the north, so we compute the edge against its
         // southwest and southeast neighbors.
-        // Draw edges to the NW and NE.
+        //    _
+        //  _/M\_    N = neighbors
+        // /N\_/N\   O = overdraw area
+        // \_/O\_/   M = mirrored hex
     }
 
     SDL_UpdateRect(screen, 0, 0, 0, 0);
