@@ -40,8 +40,17 @@ const Sint16 hMapWidth = 16;
 const Sint16 hMapHeight = 9;
 const Sint16 hMapSize = hMapWidth * hMapHeight;
 const int numRegions = 18;
-const int numTerrains = 6;
 const Point hInvalid = {-1, -1};
+
+// Not using enum class because doing math on terrain types is very convenient.
+enum Terrain {GRASS, DIRT, DESERT, WATER, SWAMP, SNOW, NUM_TERRAINS};
+
+enum class Dir {N, NE, SE, S, SW, NW, MAX_DIR};
+// Trick the compiler into treating Dir() like a container in range-based for.
+Dir operator++(Dir &d) { return d = static_cast<Dir>(int(d) + 1); }
+Dir operator*(Dir d) { return d; }
+Dir begin(Dir d) { return Dir::N; }
+Dir end(Dir d) { return Dir::MAX_DIR; }
 
 SDL_Surface *screen = nullptr;
 
@@ -100,18 +109,16 @@ Sint16 hexDist(const Point &h1, const Point &h2)
     return std::max<Sint16>(dx, dy + vPenalty + dx / 2);
 }
 
-// Return the array index of a neighbor tile in the given direction (0 = north,
-// 1 = northeast, etc.).  Return -1 if no tile exists in that direction.
-int aryGetNeighbor(int aIndex, int dir)
+// Return the array index of a neighbor tile in the given direction.  Return -1
+// if no tile exists in that direction.
+int aryGetNeighbor(int aIndex, Dir d)
 {
-    assert(dir >= 0 && dir < 6);
-
     // North, below the top row.
-    if (dir == 0 && aIndex >= hMapWidth) {
+    if (d == Dir::N && aIndex >= hMapWidth) {
         return aIndex - hMapWidth;
     }
     // Northeast, not in the right column.
-    else if (dir == 1 && (aIndex % hMapWidth < hMapWidth - 1)) {
+    else if (d == Dir::NE && (aIndex % hMapWidth < hMapWidth - 1)) {
         if (aIndex % 2 == 0) {
             if (aIndex >= hMapWidth) {
                 return aIndex - hMapWidth + 1;
@@ -122,7 +129,7 @@ int aryGetNeighbor(int aIndex, int dir)
         }
     }
     // Southeast, not in the right column.
-    else if (dir == 2 && (aIndex % hMapWidth < hMapWidth - 1)) {
+    else if (d == Dir::SE && (aIndex % hMapWidth < hMapWidth - 1)) {
         if (aIndex % 2 == 0) {
             return aIndex + 1;
         }
@@ -133,11 +140,11 @@ int aryGetNeighbor(int aIndex, int dir)
         }
     }
     // South, above the bottom row.
-    else if (dir == 3 && (aIndex < hMapSize - hMapWidth)) {
+    else if (d == Dir::S && (aIndex < hMapSize - hMapWidth)) {
         return aIndex + hMapWidth;
     }
     // Southwest, not in the left column.
-    else if (dir == 4 && (aIndex % hMapWidth > 0)) {
+    else if (d == Dir::SW && (aIndex % hMapWidth > 0)) {
         if (aIndex % 2 == 0) {
             return aIndex - 1;
         }
@@ -148,7 +155,7 @@ int aryGetNeighbor(int aIndex, int dir)
         }
     }
     // Northwest, not in the left column.
-    else if (dir == 5 && (aIndex % hMapWidth > 0)) {
+    else if (d == Dir::NW && (aIndex % hMapWidth > 0)) {
         if (aIndex % 2 == 0) {
             if (aIndex >= hMapWidth) {
                 return aIndex - hMapWidth - 1;
@@ -167,8 +174,8 @@ std::vector<int> aryNeighbors(int aIndex)
 {
     std::vector<int> av;
 
-    for (int dir = 0; dir < 6; ++dir) {
-        auto aNeighbor = aryGetNeighbor(aIndex, dir);
+    for (auto d : Dir()) {
+        auto aNeighbor = aryGetNeighbor(aIndex, d);
         if (aNeighbor != -1) {
             av.push_back(aNeighbor);
         }
@@ -302,7 +309,7 @@ std::vector<std::vector<int>> regionNeighbors(const std::vector<int> &regions)
 }
 
 // Assign a terrain type to each region using the given adjacency list.
-std::vector<int> assignTerrain(const std::vector<std::vector<int>> &adj)
+std::vector<int> assignRegionTerrains(const std::vector<std::vector<int>> &adj)
 {
     std::vector<int> terrain(numRegions, -1);
 
@@ -310,7 +317,7 @@ std::vector<int> assignTerrain(const std::vector<std::vector<int>> &adj)
     // neighbors, using the lowest number available.
     for (int r = 0; r < numRegions; ++r) {
         // For each neighboring region, save which terrains have been assigned.
-        std::bitset<numTerrains> assignedTerrains;
+        std::bitset<NUM_TERRAINS> assignedTerrains;
         for (auto rNeighbor : adj[r]) {
             assert(rNeighbor >= 0 && rNeighbor < numRegions);
             if (terrain[rNeighbor] > -1) {
@@ -318,7 +325,7 @@ std::vector<int> assignTerrain(const std::vector<std::vector<int>> &adj)
             }
         }
         if (!assignedTerrains.all()) {
-            for (int t = 0; t < numTerrains; ++t) {
+            for (int t = 0; t < NUM_TERRAINS; ++t) {
                 if (!assignedTerrains[t]) {
                     terrain[r] = t;
                     break;
@@ -340,6 +347,11 @@ void sdlBlit(const SdlSurface &surf, Sint16 px, Sint16 py)
     if (SDL_BlitSurface(surf.get(), nullptr, screen, &dest) < 0) {
         std::cerr << "Warning: error drawing to screen: " << SDL_GetError();
     }
+}
+
+// Note: doesn't do bounds checking so we can overdraw the map edges.
+void sdlBlitAtHex(const SdlSurface &surf, Sint16 hx, Sint16 hy)
+{
 }
 
 SdlSurface sdlLoadImage(const char *filename)
@@ -398,12 +410,6 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     tiles.push_back(sdlLoadImage("../img/snow.png"));
 
     std::vector<SdlSurface> edges;
-    edges.push_back(sdlLoadImage("../img/beach-n.png"));
-    edges.push_back(sdlLoadImage("../img/beach-ne.png"));
-    edges.push_back(sdlLoadImage("../img/beach-se.png"));
-    edges.push_back(sdlLoadImage("../img/beach-s.png"));
-    edges.push_back(sdlLoadImage("../img/beach-sw.png"));
-    edges.push_back(sdlLoadImage("../img/beach-nw.png"));
     edges.push_back(sdlLoadImage("../img/grass-n.png"));
     edges.push_back(sdlLoadImage("../img/grass-ne.png"));
     edges.push_back(sdlLoadImage("../img/grass-se.png"));
@@ -416,21 +422,34 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     edges.push_back(sdlLoadImage("../img/dirt-s.png"));
     edges.push_back(sdlLoadImage("../img/dirt-sw.png"));
     edges.push_back(sdlLoadImage("../img/dirt-nw.png"));
+    edges.push_back(sdlLoadImage("../img/beach-n.png"));
+    edges.push_back(sdlLoadImage("../img/beach-ne.png"));
+    edges.push_back(sdlLoadImage("../img/beach-se.png"));
+    edges.push_back(sdlLoadImage("../img/beach-s.png"));
+    edges.push_back(sdlLoadImage("../img/beach-sw.png"));
+    edges.push_back(sdlLoadImage("../img/beach-nw.png"));
 
     auto regions = rGenerate();
     auto adjacencyList = regionNeighbors(regions);
-    auto terrain = assignTerrain(adjacencyList);
+    auto regionTerrain = assignRegionTerrains(adjacencyList);
+
+    // Assign terrain to each hex.
+    std::vector<int> terrain(hMapSize, -1);
+    for (auto i = 0u; i < regions.size(); ++i) {
+        terrain[i] = regionTerrain[regions[i]];
+    }
 
     // Display even-numbered columns.
     for (Sint16 hx = 0; hx < hMapWidth; hx += 2) {
         for (Sint16 hy = 0; hy < hMapHeight; ++hy) {
             auto aPos = aryFromHex(hx, hy);
-            auto terrainIndex = terrain[regions[aPos]];
+            auto terrainIndex = terrain[aPos];
             sdlBlit(tiles[terrainIndex], hx * hexSize * 0.75, hy * hexSize);
+            /*
             if (terrainIndex == 3) {  // water
                 for (auto dir = 0; dir < 6; ++dir) {
                     auto aNeighbor = aryGetNeighbor(aPos, dir);
-                    if (aNeighbor >= 0 && terrain[regions[aNeighbor]] != 3) {
+                    if (aNeighbor >= 0 && terrain[aNeighbor] != 3) {
                         sdlBlit(edges[dir], hx * hexSize * 0.75, hy * hexSize);
                     }
                 }
@@ -439,11 +458,11 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
                 for (auto dir = 0; dir < 6; ++dir) {
                     auto aNeighbor = aryGetNeighbor(aPos, dir);
                     // neighbor is water, draw beach
-                    if (aNeighbor >= 0 && terrain[regions[aNeighbor]] == 3) {
+                    if (aNeighbor >= 0 && terrain[aNeighbor] == 3) {
                         sdlBlit(edges[dir], hx * hexSize * 0.75, hy * hexSize);
                     }
                     // neighbor is grass, draw dirt
-                    else if (terrainIndex != 0 && aNeighbor >= 0 && terrain[regions[aNeighbor]] == 0) {
+                    else if (terrainIndex != 0 && aNeighbor >= 0 && terrain[aNeighbor] == 0) {
                         sdlBlit(edges[dir+12], hx * hexSize * 0.75, hy * hexSize);
                     }
                 }
@@ -452,11 +471,12 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
                 for (auto dir = 0; dir < 6; ++dir) {
                     auto aNeighbor = aryGetNeighbor(aPos, dir);
                     // neighbor is dirt or grass
-                    if (aNeighbor >= 0 && terrain[regions[aNeighbor]] <= 1) {
+                    if (aNeighbor >= 0 && terrain[aNeighbor] <= 1) {
                         sdlBlit(edges[dir+12], hx * hexSize * 0.75, hy * hexSize);
                     }
                 }
             }
+            */
         }
     }
 
@@ -464,12 +484,13 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     for (Sint16 hx = 1; hx < hMapWidth; hx += 2) {
         for (Sint16 hy = 0; hy < hMapHeight; ++hy) {
             auto aPos = aryFromHex(hx, hy);
-            auto terrainIndex = terrain[regions[aPos]];
+            auto terrainIndex = terrain[aPos];
             sdlBlit(tiles[terrainIndex], hx * hexSize * 0.75, (hy+0.5) * hexSize);
+            /*
             if (terrainIndex == 3) {  // water
                 for (auto dir = 0; dir < 6; ++dir) {
                     auto aNeighbor = aryGetNeighbor(aPos, dir);
-                    if (aNeighbor >= 0 && terrain[regions[aNeighbor]] != 3) {
+                    if (aNeighbor >= 0 && terrain[aNeighbor] != 3) {
                         sdlBlit(edges[dir], hx * hexSize * 0.75, (hy+0.5) * hexSize);
                     }
                 }
@@ -477,11 +498,11 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
             if (terrainIndex != 3) {  // not water
                 for (auto dir = 0; dir < 6; ++dir) {
                     auto aNeighbor = aryGetNeighbor(aPos, dir);
-                    if (aNeighbor >= 0 && terrain[regions[aNeighbor]] == 3) {
+                    if (aNeighbor >= 0 && terrain[aNeighbor] == 3) {
                         sdlBlit(edges[dir], hx * hexSize * 0.75, (hy+0.5) * hexSize);
                     }
                     // neighbor is grass, draw dirt
-                    else if (terrainIndex != 0 && aNeighbor >= 0 && terrain[regions[aNeighbor]] == 0) {
+                    else if (terrainIndex != 0 && aNeighbor >= 0 && terrain[aNeighbor] == 0) {
                         sdlBlit(edges[dir+12], hx * hexSize * 0.75, (hy+0.5) * hexSize);
                     }
                 }
@@ -490,11 +511,12 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
                 for (auto dir = 0; dir < 6; ++dir) {
                     auto aNeighbor = aryGetNeighbor(aPos, dir);
                     // neighbor is dirt or grass, draw dirt
-                    if (aNeighbor >= 0 && terrain[regions[aNeighbor]] <= 1) {
+                    if (aNeighbor >= 0 && terrain[aNeighbor] <= 1) {
                         sdlBlit(edges[dir+12], hx * hexSize * 0.75, (hy+0.5) * hexSize);
                     }
                 }
             }
+            */
         }
     }
     // Overdraw so we don't get jagged edges, copying from neighboring hexes.
@@ -502,26 +524,26 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     // left edge, hx = -1
     for (Sint16 hy = -1; hy < hMapHeight; ++hy) {
         auto aNeighbor = aryFromHex(0, std::min(hy + 1, hMapHeight - 1));
-        auto terrainIndex = terrain[regions[aNeighbor]];
+        auto terrainIndex = terrain[aNeighbor];
         sdlBlit(tiles[terrainIndex], -0.75 * hexSize, (hy+0.5) * hexSize);
     }
     // top edge, hy = -1
     for (Sint16 hx = 1; hx < hMapWidth; hx += 2) {
         auto aNeighbor = aryFromHex(hx, 0);
-        auto terrainIndex = terrain[regions[aNeighbor]];
+        auto terrainIndex = terrain[aNeighbor];
         sdlBlit(tiles[terrainIndex], hx * hexSize * 0.75, -0.5 * hexSize);
     }
     // right edge, hx = hMapWidth
     for (Sint16 hy = 0; hy < hMapHeight + 1; ++hy) {
         auto aNeighbor = aryFromHex(hMapWidth - 1,
                                     std::min<int>(hy, hMapHeight - 1));
-        auto terrainIndex = terrain[regions[aNeighbor]];
+        auto terrainIndex = terrain[aNeighbor];
         sdlBlit(tiles[terrainIndex], hMapWidth * hexSize * 0.75, hy * hexSize);
     }
     // bottom edge, hy = hMapHeight
     for (Sint16 hx = 0; hx < hMapWidth; hx += 2) {
         auto aNeighbor = aryFromHex(hx, hMapHeight - 1);
-        auto terrainIndex = terrain[regions[aNeighbor]];
+        auto terrainIndex = terrain[aNeighbor];
         sdlBlit(tiles[terrainIndex], hx * hexSize * 0.75, hMapHeight * hexSize);
     }
 
