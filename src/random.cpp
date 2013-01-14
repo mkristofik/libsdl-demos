@@ -350,7 +350,7 @@ void sdlBlit(const SdlSurface &surf, Sint16 px, Sint16 py)
 }
 
 // Note: doesn't do bounds checking so we can overdraw the map edges.
-void sdlBlitAtHex(const SdlSurface &surf, Sint16 hx, Sint16 hy)
+void sdlBlitAt(const SdlSurface &surf, Sint16 hx, Sint16 hy)
 {
     if (hx % 2 == 0) {
         sdlBlit(surf, hx * hexSize * 0.75, hy * hexSize);
@@ -358,6 +358,15 @@ void sdlBlitAtHex(const SdlSurface &surf, Sint16 hx, Sint16 hy)
     else {
         sdlBlit(surf, hx * hexSize * 0.75, (hy + 0.5) * hexSize);
     }
+}
+
+// This one does do bounds checking because it doesn't make sense to have an
+// out-of-range array index.
+void sdlBlitAt(const SdlSurface &surf, int aIndex)
+{
+    assert(aIndex >= 0 && aIndex < hMapSize);
+    auto hex = hexFromAry(aIndex);
+    sdlBlitAt(surf, hex.first, hex.second);
 }
 
 SdlSurface sdlLoadImage(const char *filename)
@@ -382,16 +391,16 @@ SdlSurface sdlLoadImage(const char *filename)
 int getEdge(int terrainFrom, int terrainTo)
 {
     if ((terrainFrom == WATER && terrainTo != WATER) ||
-        (terrainFrom != WATER && terrainTo == WATER)) {
+        (terrainFrom != WATER && terrainTo == WATER) ||
+        (terrainFrom == SAND && terrainTo != SAND) ||
+        (terrainFrom != SAND && terrainTo == SAND)) {
         return SAND;
     }
-    else if (terrainFrom == DIRT && terrainTo == GRASS) {
+    else if ((terrainFrom == DIRT && terrainTo == GRASS) ||
+             (terrainFrom == GRASS && terrainTo == DIRT)) {
         return GRASS;
     }
-    else if (terrainFrom == GRASS && terrainTo == DIRT) {
-        return -1;
-    }
-    else if (terrainFrom != DIRT && terrainFrom != terrainTo) {
+    else if (terrainFrom != terrainTo) {
         return DIRT;
     }
 
@@ -471,7 +480,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
         for (Sint16 hy = 0; hy < hMapHeight; ++hy) {
             auto aPos = aryFromHex(hx, hy);
             auto terrainIndex = terrain[aPos];
-            sdlBlitAtHex(tiles[terrainIndex], hx, hy);
+            sdlBlitAt(tiles[terrainIndex], hx, hy);
             for (auto dir : Dir()) {
                 auto aNeighbor = aryGetNeighbor(aPos, dir);
                 if (aNeighbor == -1) continue;
@@ -479,7 +488,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
                 if (edgeTerrain >= 0) {
                     assert(edgeTerrain < NUM_TERRAINS);
                     int edgeIndex = edgeTerrain * 6 + int(dir);
-                    sdlBlitAtHex(edges[edgeIndex], hx, hy);
+                    sdlBlitAt(edges[edgeIndex], hx, hy);
                 }
             }
         }
@@ -491,7 +500,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     for (Sint16 hy = -1; hy < hMapHeight; ++hy) {
         auto aMirror = aryFromHex(0, std::min(hy + 1, hMapHeight - 1));
         auto terrainIndex = terrain[aMirror];
-        sdlBlitAtHex(tiles[terrainIndex], -1, hy);
+        sdlBlitAt(tiles[terrainIndex], -1, hy);
         // Mirrored hex is to the southeast, so we compute the edge against its
         // north neighbor.
         //  /N\   N = neighbor
@@ -503,33 +512,59 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
         auto edgeTerrain1 = getEdge(terrainIndex, terrain[aNeighbor]);
         if (edgeTerrain1 >= 0) {
             int edgeIndex = edgeTerrain1 * 6 + int(Dir::NE);
-            sdlBlitAtHex(edges[edgeIndex], -1, hy);
+            sdlBlitAt(edges[edgeIndex], -1, hy);
         }
         // Might have to draw the edge the other way too.
         auto edgeTerrain2 = getEdge(terrain[aNeighbor], terrainIndex);
         if (edgeTerrain2 >= 0) {
             int edgeIndex = edgeTerrain2 * 6 + int(Dir::SW);
-            sdlBlitAtHex(edges[edgeIndex], 0, hy);
+            sdlBlitAt(edges[edgeIndex], aNeighbor);
         }
     }
     // top edge
     for (Sint16 hx = 1; hx < hMapWidth; hx += 2) {
         auto aMirror = aryFromHex(hx, 0);
         auto terrainIndex = terrain[aMirror];
-        sdlBlitAtHex(tiles[terrainIndex], hx, -1);
+        sdlBlitAt(tiles[terrainIndex], hx, -1);
         // Mirrored hex is to the south, so we compute the edge against its
         // northwest and northeast neighbors.
         //  _ O _
         // /N\_/N\   N = neighbors
         // \_/M\_/   O = overdraw area
         //   \_/     M = mirrored hex
+        auto aNeighbor1 = aryGetNeighbor(aMirror, Dir::NW);
+        if (aNeighbor1 != -1) {
+            auto edgeTerrain1 = getEdge(terrainIndex, terrain[aNeighbor1]);
+            if (edgeTerrain1 >= 0) {
+                int edgeIndex1 = edgeTerrain1 * 6 + int(Dir::SW);
+                sdlBlitAt(edges[edgeIndex1], hx, -1);
+            }
+            auto edgeTerrain2 = getEdge(terrain[aNeighbor1], terrainIndex);
+            if (edgeTerrain2 >= 0) {
+                int edgeIndex2 = edgeTerrain2 * 6 + int(Dir::NE);
+                sdlBlitAt(edges[edgeIndex2], aNeighbor1);
+            }
+        }
+        auto aNeighbor2 = aryGetNeighbor(aMirror, Dir::NE);
+        if (aNeighbor2 != -1) {
+            auto edgeTerrain3 = getEdge(terrainIndex, terrain[aNeighbor2]);
+            if (edgeTerrain3 >= 0) {
+                int edgeIndex3 = edgeTerrain3 * 6 + int(Dir::SE);
+                sdlBlitAt(edges[edgeIndex3], hx, -1);
+            }
+            auto edgeTerrain4 = getEdge(terrain[aNeighbor2], terrainIndex);
+            if (edgeTerrain4 >= 0) {
+                int edgeIndex4 = edgeTerrain4 * 6 + int(Dir::NW);
+                sdlBlitAt(edges[edgeIndex4], aNeighbor2);
+            }
+        }
     }
     // right edge
     for (Sint16 hy = 0; hy < hMapHeight + 1; ++hy) {
         auto aMirror = aryFromHex(hMapWidth - 1,
                                   std::min<int>(hy, hMapHeight - 1));
         auto terrainIndex = terrain[aMirror];
-        sdlBlitAtHex(tiles[terrainIndex], hMapWidth, hy);
+        sdlBlitAt(tiles[terrainIndex], hMapWidth, hy);
         // Mirrored hex is to the southwest, so we compute the edge against its
         // north neighbor.
         //  _
@@ -537,18 +572,56 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
         // \_/O   O = overdraw area
         // /M\    M = mirrored hex
         // \_/
+        auto aNeighbor = aryGetNeighbor(aMirror, Dir::N);
+        if (aNeighbor == -1) continue;
+        auto edgeTerrain1 = getEdge(terrainIndex, terrain[aNeighbor]);
+        if (edgeTerrain1 >= 0) {
+            int edgeIndex = edgeTerrain1 * 6 + int(Dir::NW);
+            sdlBlitAt(edges[edgeIndex], hMapWidth, hy);
+        }
+        auto edgeTerrain2 = getEdge(terrain[aNeighbor], terrainIndex);
+        if (edgeTerrain2 >= 0) {
+            int edgeIndex = edgeTerrain2 * 6 + int(Dir::SE);
+            sdlBlitAt(edges[edgeIndex], aNeighbor);
+        }
     }
     // bottom edge
     for (Sint16 hx = 0; hx < hMapWidth; hx += 2) {
         auto aMirror = aryFromHex(hx, hMapHeight - 1);
         auto terrainIndex = terrain[aMirror];
-        sdlBlitAtHex(tiles[terrainIndex], hx, hMapHeight);
+        sdlBlitAt(tiles[terrainIndex], hx, hMapHeight);
         // Mirrored hex is to the north, so we compute the edge against its
         // southwest and southeast neighbors.
         //    _
         //  _/M\_    N = neighbors
         // /N\_/N\   O = overdraw area
         // \_/O\_/   M = mirrored hex
+        auto aNeighbor1 = aryGetNeighbor(aMirror, Dir::SW);
+        if (aNeighbor1 != -1) {
+            auto edgeTerrain1 = getEdge(terrainIndex, terrain[aNeighbor1]);
+            if (edgeTerrain1 >= 0) {
+                int edgeIndex1 = edgeTerrain1 * 6 + int(Dir::NW);
+                sdlBlitAt(edges[edgeIndex1], hx, hMapHeight);
+            }
+            auto edgeTerrain2 = getEdge(terrain[aNeighbor1], terrainIndex);
+            if (edgeTerrain2 >= 0) {
+                int edgeIndex2 = edgeTerrain2 * 6 + int(Dir::SE);
+                sdlBlitAt(edges[edgeIndex2], aNeighbor1);
+            }
+        }
+        auto aNeighbor2 = aryGetNeighbor(aMirror, Dir::SE);
+        if (aNeighbor2 != -1) {
+            auto edgeTerrain3 = getEdge(terrainIndex, terrain[aNeighbor2]);
+            if (edgeTerrain3 >= 0) {
+                int edgeIndex3 = edgeTerrain3 * 6 + int(Dir::NE);
+                sdlBlitAt(edges[edgeIndex3], hx, hMapHeight);
+            }
+            auto edgeTerrain4 = getEdge(terrain[aNeighbor2], terrainIndex);
+            if (edgeTerrain4 >= 0) {
+                int edgeIndex4 = edgeTerrain4 * 6 + int(Dir::SW);
+                sdlBlitAt(edges[edgeIndex4], aNeighbor2);
+            }
+        }
     }
 
     SDL_UpdateRect(screen, 0, 0, 0, 0);
