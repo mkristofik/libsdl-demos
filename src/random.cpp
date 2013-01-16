@@ -10,9 +10,8 @@
  
     See the COPYING.txt file for more details.
 */
-#include "SDL.h"
-#include "SDL_image.h"
 #include "iterable_enum_class.h"
+#include "sdl_helper.h"
 
 #include <algorithm>
 #include <bitset>
@@ -21,13 +20,11 @@
 #include <ctime>
 #include <iostream>
 #include <limits>
-#include <memory>
 #include <random>
 #include <stdexcept>
 #include <utility>
 #include <vector>
 
-using SdlSurface = std::shared_ptr<SDL_Surface>;
 using Point = std::pair<Sint16, Sint16>;
 
 // Experiment with Apps Hungarian notation:
@@ -48,13 +45,6 @@ enum Terrain {GRASS, DIRT, SAND, WATER, SWAMP, SNOW, NUM_TERRAINS};
 
 enum class Dir {N, NE, SE, S, SW, NW, _last, _first = N};
 ITERABLE_ENUM_CLASS(Dir);
-
-SDL_Surface *screen = nullptr;
-
-SdlSurface make_surface(SDL_Surface *surf)
-{
-    return SdlSurface(surf, SDL_FreeSurface);
-}
 
 std::ostream & operator<<(std::ostream &os, const Point &p)
 {
@@ -336,15 +326,6 @@ std::vector<int> assignRegionTerrains(const std::vector<std::vector<int>> &adj)
     return terrain;
 }
 
-void sdlBlit(const SdlSurface &surf, Sint16 px, Sint16 py)
-{
-    assert(screen != nullptr);
-    SDL_Rect dest = {px, py, 0, 0};
-    if (SDL_BlitSurface(surf.get(), nullptr, screen, &dest) < 0) {
-        std::cerr << "Warning: error drawing to screen: " << SDL_GetError();
-    }
-}
-
 // Note: doesn't do bounds checking so we can overdraw the map edges.
 void sdlBlitAt(const SdlSurface &surf, Sint16 hx, Sint16 hy)
 {
@@ -363,23 +344,6 @@ void sdlBlitAt(const SdlSurface &surf, int aIndex)
     assert(aIndex >= 0 && aIndex < hMapSize);
     auto hex = hexFromAry(aIndex);
     sdlBlitAt(surf, hex.first, hex.second);
-}
-
-SdlSurface sdlLoadImage(const char *filename)
-{
-    auto temp = make_surface(IMG_Load(filename));
-    if (!temp) {
-        std::cerr << "Error loading image " << filename
-            << "\n    " << IMG_GetError() << '\n';
-        return temp;
-    }
-    auto surf = make_surface(SDL_DisplayFormatAlpha(temp.get()));
-    if (!surf) {
-        std::cerr << "Error converting to display format: "
-            << "\n    " << IMG_GetError() << '\n';
-    }
-
-    return surf;
 }
 
 int getEdge(int terrainFrom, int terrainTo)

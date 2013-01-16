@@ -21,5 +21,5 @@ add_executable(${EXENAME} test.cpp)
 target_link_libraries(${EXENAME} mingw32 SDLmain SDL SDL_image SDL_ttf)
 
 set(EXE2 random)
-add_executable(${EXE2} random.cpp)
+add_executable(${EXE2} random.cpp sdl_helper.cpp)
 target_link_libraries(${EXE2} mingw32 SDLmain SDL SDL_image)
