@@ -12,6 +12,7 @@
 */
 #include "SDL.h"
 #include "SDL_image.h"
+#include "iterable_enum_class.h"
 
 #include <algorithm>
 #include <bitset>
@@ -45,12 +46,8 @@ const Point hInvalid = {-1, -1};
 // Not using enum class because doing math on terrain types is very convenient.
 enum Terrain {GRASS, DIRT, SAND, WATER, SWAMP, SNOW, NUM_TERRAINS};
 
-enum class Dir {N, NE, SE, S, SW, NW, MAX_DIR};
-// Trick the compiler into treating Dir() like a container in range-based for.
-Dir operator++(Dir &d) { return d = static_cast<Dir>(int(d) + 1); }
-Dir operator*(Dir d) { return d; }
-Dir begin(Dir d) { return Dir::N; }
-Dir end(Dir d) { return Dir::MAX_DIR; }
+enum class Dir {N, NE, SE, S, SW, NW, _last, _first = N};
+ITERABLE_ENUM_CLASS(Dir);
 
 SDL_Surface *screen = nullptr;
 
@@ -70,14 +67,14 @@ Point hexFromAry(int aIndex)
     return {aIndex % hMapWidth, aIndex / hMapWidth};
 }
 
-int aryFromHex(const Point &hex)
-{
-    return hex.second * hMapWidth + hex.first;
-}
-
 int aryFromHex(Sint16 hx, Sint16 hy)
 {
     return hy * hMapWidth + hx;
+}
+
+int aryFromHex(const Point &hex)
+{
+    return aryFromHex(hex.first, hex.second);
 }
 
 Point hexRandom()
@@ -189,8 +186,7 @@ std::vector<Point> hexNeighbors(const Point &hex)
 {
     std::vector<Point> hv;
 
-    auto av = aryNeighbors(aryFromHex(hex));
-    for (auto aNeighbor : av) {
+    for (auto aNeighbor : aryNeighbors(aryFromHex(hex))) {
         hv.push_back(hexFromAry(aNeighbor));
     }
 
@@ -250,7 +246,7 @@ std::vector<Point> hGetCenters(const std::vector<int> &regions)
 }
 
 // Use a voronoi diagram to generate a random set of regions.
-std::vector<int> rGenerate()
+std::vector<int> generateRegions()
 {
     // Start with a set of random center points.  Don't worry if there are
     // duplicates.
@@ -386,8 +382,6 @@ SdlSurface sdlLoadImage(const char *filename)
     return surf;
 }
 
-// Edge transitions are stored in the same order as the terrains, with 6 tiles
-// for each terrain type.
 int getEdge(int terrainFrom, int terrainTo)
 {
     if ((terrainFrom == WATER && terrainTo != WATER) ||
@@ -465,7 +459,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     edges.push_back(sdlLoadImage("../img/beach-sw.png"));
     edges.push_back(sdlLoadImage("../img/beach-nw.png"));
 
-    auto regions = rGenerate();
+    auto regions = generateRegions();
     auto adjacencyList = regionNeighbors(regions);
     auto regionTerrain = assignRegionTerrains(adjacencyList);
 
@@ -486,7 +480,6 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
                 if (aNeighbor == -1) continue;
                 auto edgeTerrain = getEdge(terrainIndex, terrain[aNeighbor]);
                 if (edgeTerrain >= 0) {
-                    assert(edgeTerrain < NUM_TERRAINS);
                     int edgeIndex = edgeTerrain * 6 + int(dir);
                     sdlBlitAt(edges[edgeIndex], hx, hy);
                 }
@@ -664,6 +657,20 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
                  [] (int hn) { std::cout << hn << ','; });
         std::cout << '\n';
         ++count;
+    }
+
+    // Check that we always draw an edge between two different terrains and
+    // that we never draw an edge between two terrains that are the same.
+    for (int i = 0; i < NUM_TERRAINS; ++i) {
+        for (int j = 0; j < NUM_TERRAINS; ++j) {
+            if (i == j) {
+                assert(getEdge(i, j) == -1);
+            }
+            else {
+                auto edge = getEdge(i, j);
+                assert(edge >= 0 && edge < NUM_TERRAINS);
+            }
+        }
     }
 
     return EXIT_SUCCESS;
