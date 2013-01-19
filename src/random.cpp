@@ -11,7 +11,6 @@
     See the COPYING.txt file for more details.
 */
 #include "hex_utils.h"
-#include "iterable_enum_class.h"
 #include "sdl_helper.h"
 
 #include <algorithm>
@@ -40,9 +39,6 @@ const int numRegions = 18;
 
 // Not using enum class because doing math on terrain types is very convenient.
 enum Terrain {GRASS, DIRT, SAND, WATER, SWAMP, SNOW, NUM_TERRAINS};
-
-enum class Dir {N, NE, SE, S, SW, NW, _last, _first = N};
-ITERABLE_ENUM_CLASS(Dir);
 
 Point hexFromAry(int aIndex)
 {

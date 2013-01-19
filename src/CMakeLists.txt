@@ -15,7 +15,7 @@ link_directories("c:/MyLibs/SDL-1.2.15/lib"
     "c:/MyLibs/SDL_ttf-2.0.11/lib/x86")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mwindows")
 
-add_executable(${EXENAME} test.cpp)
+add_executable(${EXENAME} hello.cpp)
 
 # Must appear after add_executable line.
 target_link_libraries(${EXENAME} mingw32 SDLmain SDL SDL_image SDL_ttf)

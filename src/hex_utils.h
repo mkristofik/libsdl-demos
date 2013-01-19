@@ -14,11 +14,15 @@
 #define HEX_UTILS_H
 
 #include "SDL_types.h"
+#include "iterable_enum_class.h"
 #include <iosfwd>
 #include <utility>
 
 using Point = std::pair<Sint16, Sint16>;
 const Point hInvalid = {-1, -1};
+
+enum class Dir {N, NE, SE, S, SW, NW, _last, _first = N};
+ITERABLE_ENUM_CLASS(Dir);
 
 std::ostream & operator<<(std::ostream &os, const Point &p);
 Sint16 hexDist(const Point &h1, const Point &h2);
