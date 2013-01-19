@@ -10,6 +10,7 @@
  
     See the COPYING.txt file for more details.
 */
+#include "hex_utils.h"
 #include "iterable_enum_class.h"
 #include "sdl_helper.h"
 
@@ -25,8 +26,6 @@
 #include <utility>
 #include <vector>
 
-using Point = std::pair<Sint16, Sint16>;
-
 // Experiment with Apps Hungarian notation:
 // a = hex number as an array index
 // h = hex coordinate
@@ -38,19 +37,12 @@ const Sint16 hMapWidth = 16;
 const Sint16 hMapHeight = 9;
 const Sint16 hMapSize = hMapWidth * hMapHeight;
 const int numRegions = 18;
-const Point hInvalid = {-1, -1};
 
 // Not using enum class because doing math on terrain types is very convenient.
 enum Terrain {GRASS, DIRT, SAND, WATER, SWAMP, SNOW, NUM_TERRAINS};
 
 enum class Dir {N, NE, SE, S, SW, NW, _last, _first = N};
 ITERABLE_ENUM_CLASS(Dir);
-
-std::ostream & operator<<(std::ostream &os, const Point &p)
-{
-    os << '(' << p.first << ',' << p.second << ')';
-    return os;
-}
 
 Point hexFromAry(int aIndex)
 {
@@ -73,27 +65,6 @@ Point hexRandom()
     static std::uniform_int_distribution<Sint16> dist(0, hMapWidth * hMapHeight - 1);
     Sint16 aRand = dist(gen);
     return hexFromAry(aRand);
-}
-
-// source: Battle for Wesnoth, distance_between() in map_location.cpp.
-Sint16 hexDist(const Point &h1, const Point &h2)
-{
-    if (h1 == hInvalid || h2 == hInvalid) {
-        return std::numeric_limits<Sint16>::max();
-    }
-
-    Sint16 dx = abs(h1.first - h2.first);
-    Sint16 dy = abs(h1.second - h2.second);
-
-    // Since the x-axis of the hex grid is staggered, we need to add a step in
-    // certain cases.
-    Sint16 vPenalty = 0;
-    if ((h1.second < h2.second && h1.first % 2 == 0 && h2.first % 2 == 1) ||
-        (h1.second > h2.second && h1.first % 2 == 1 && h2.first % 2 == 0)) {
-        vPenalty = 1;
-    }
-
-    return std::max<Sint16>(dx, dy + vPenalty + dx / 2);
 }
 
 // Return the array index of a neighbor tile in the given direction.  Return -1

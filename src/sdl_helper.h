@@ -26,7 +26,7 @@ extern SDL_Surface *screen;
 // Like std::make_shared, but with SDL_Surface.
 SdlSurface make_surface(SDL_Surface *surf);
 
-// Draw the full surface to the screen, using (px,py) as the upper-left corner.
+// Draw the full surface to the screen using (px,py) as the upper-left corner.
 // Use the raw SDL_BlitSurface if you need something more specific.
 void sdlBlit(const SdlSurface &surf, Sint16 px, Sint16 py);
 
