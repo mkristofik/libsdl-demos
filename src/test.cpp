@@ -10,15 +10,69 @@
  
     See the COPYING.txt file for more details.
 */
-#define BOOST_TEST_MODULE Test_Module_1
+#define BOOST_TEST_MODULE Hex_Utils_Test
 #include <boost/test/unit_test.hpp>
 
 #include "hex_utils.h"
 
-BOOST_AUTO_TEST_CASE(Hex_Distance)
+BOOST_AUTO_TEST_CASE(Distance)
 {
     BOOST_CHECK_EQUAL(hexDist({1, 1}, {2, 2}), 1);
     BOOST_CHECK_EQUAL(hexDist({4, 4}, {3, 3}), 1);
     BOOST_CHECK_EQUAL(hexDist({1, 1}, {3, 3}), 3);
     BOOST_CHECK_EQUAL(hexDist({7, 7}, {5, 5}), 3);
+}
+
+BOOST_AUTO_TEST_CASE(Array_Index_To_Hex)
+{
+    HexGrid grid(16, 9);
+    
+    // Generate some random hexes and convert back and forth between the array
+    // index and 2D representations.
+    for (int i = 0; i < 10; ++i) {
+        auto hex = grid.hexRandom();
+        auto a = grid.aryFromHex(hex);
+        auto aryN = grid.aryNeighbors(a);
+        auto hexN = grid.hexNeighbors(hex);
+        BOOST_CHECK_EQUAL(aryN.size(), hexN.size());
+
+        for (unsigned int i = 0; i < hexN.size(); ++i) {
+            BOOST_CHECK_EQUAL(grid.aryFromHex(hexN[i]), aryN[i]);
+        }
+    }
+}
+
+template <class Container, class T>
+bool contains(const Container& c, const T& elem)
+{
+    return find(std::begin(c), std::end(c), elem) != std::end(c);
+}
+
+BOOST_AUTO_TEST_CASE(Neighbors)
+{
+    HexGrid grid(16, 9);
+
+    auto hn = grid.hexNeighbors({0, 0});
+    BOOST_CHECK(contains(hn, Point{1, 0}));
+    BOOST_CHECK(contains(hn, Point{0, 1}));
+
+    hn = grid.hexNeighbors({2, 4});
+    BOOST_CHECK(contains(hn, Point{2, 3}));
+    BOOST_CHECK(contains(hn, Point{2, 5}));
+    BOOST_CHECK(contains(hn, Point{1, 3}));
+    BOOST_CHECK(contains(hn, Point{1, 4}));
+    BOOST_CHECK(contains(hn, Point{3, 3}));
+    BOOST_CHECK(contains(hn, Point{3, 4}));
+
+    hn = grid.hexNeighbors({7, 5});
+    BOOST_CHECK(contains(hn, Point{7, 4}));
+    BOOST_CHECK(contains(hn, Point{7, 6}));
+    BOOST_CHECK(contains(hn, Point{6, 5}));
+    BOOST_CHECK(contains(hn, Point{6, 6}));
+    BOOST_CHECK(contains(hn, Point{8, 5}));
+    BOOST_CHECK(contains(hn, Point{8, 6}));
+
+    hn = grid.hexNeighbors({15, 8});
+    BOOST_CHECK(contains(hn, Point{15, 7}));
+    BOOST_CHECK(contains(hn, Point{14, 8}));
 }

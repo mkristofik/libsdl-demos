@@ -17,10 +17,8 @@
 #include <bitset>
 #include <cassert>
 #include <cstdlib>
-#include <ctime>
 #include <iostream>
 #include <limits>
-#include <random>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -39,116 +37,6 @@ const int numRegions = 18;
 
 // Not using enum class because doing math on terrain types is very convenient.
 enum Terrain {GRASS, DIRT, SAND, WATER, SWAMP, SNOW, NUM_TERRAINS};
-
-Point hexFromAry(int aIndex)
-{
-    return {aIndex % hMapWidth, aIndex / hMapWidth};
-}
-
-int aryFromHex(Sint16 hx, Sint16 hy)
-{
-    return hy * hMapWidth + hx;
-}
-
-int aryFromHex(const Point &hex)
-{
-    return aryFromHex(hex.first, hex.second);
-}
-
-Point hexRandom()
-{
-    static std::minstd_rand gen(static_cast<unsigned int>(std::time(nullptr)));
-    static std::uniform_int_distribution<Sint16> dist(0, hMapWidth * hMapHeight - 1);
-    Sint16 aRand = dist(gen);
-    return hexFromAry(aRand);
-}
-
-// Return the array index of a neighbor tile in the given direction.  Return -1
-// if no tile exists in that direction.
-int aryGetNeighbor(int aIndex, Dir d)
-{
-    // North, below the top row.
-    if (d == Dir::N && aIndex >= hMapWidth) {
-        return aIndex - hMapWidth;
-    }
-    // Northeast, not in the right column.
-    else if (d == Dir::NE && (aIndex % hMapWidth < hMapWidth - 1)) {
-        if (aIndex % 2 == 0) {
-            if (aIndex >= hMapWidth) {
-                return aIndex - hMapWidth + 1;
-            }
-        }
-        else {
-            return aIndex + 1;
-        }
-    }
-    // Southeast, not in the right column.
-    else if (d == Dir::SE && (aIndex % hMapWidth < hMapWidth - 1)) {
-        if (aIndex % 2 == 0) {
-            return aIndex + 1;
-        }
-        else {
-            if (aIndex < hMapSize - hMapWidth) {
-                return aIndex + hMapWidth + 1;
-            }
-        }
-    }
-    // South, above the bottom row.
-    else if (d == Dir::S && (aIndex < hMapSize - hMapWidth)) {
-        return aIndex + hMapWidth;
-    }
-    // Southwest, not in the left column.
-    else if (d == Dir::SW && (aIndex % hMapWidth > 0)) {
-        if (aIndex % 2 == 0) {
-            return aIndex - 1;
-        }
-        else {
-            if (aIndex < hMapSize - hMapWidth) {
-                return aIndex + hMapWidth - 1;
-            }
-        }
-    }
-    // Northwest, not in the left column.
-    else if (d == Dir::NW && (aIndex % hMapWidth > 0)) {
-        if (aIndex % 2 == 0) {
-            if (aIndex >= hMapWidth) {
-                return aIndex - hMapWidth - 1;
-            }
-        }
-        else {
-            return aIndex - 1;
-        }
-    }
-
-    return -1;
-}
-
-// Compute all neighbors of a given tile.  Result might have size < 6.
-std::vector<int> aryNeighbors(int aIndex)
-{
-    std::vector<int> av;
-
-    for (auto d : Dir()) {
-        auto aNeighbor = aryGetNeighbor(aIndex, d);
-        if (aNeighbor != -1) {
-            av.push_back(aNeighbor);
-        }
-    }
-
-    return av;
-}
-
-// Same as aryNeighbors() but with hex coordinates instead of array indexes.
-std::vector<Point> hexNeighbors(const Point &hex)
-{
-    std::vector<Point> hv;
-
-    for (auto aNeighbor : aryNeighbors(aryFromHex(hex))) {
-        hv.push_back(hexFromAry(aNeighbor));
-    }
-
-    return hv;
-}
 
 // Return the closest region to the given hex (hx,hy).
 int rFindClosest(Sint16 hx, Sint16 hy, const std::vector<Point> &hCenters)
@@ -207,9 +95,10 @@ std::vector<int> generateRegions()
 {
     // Start with a set of random center points.  Don't worry if there are
     // duplicates.
+    HexGrid grid(hMapWidth, hMapHeight);
     std::vector<Point> hCenters;
     for (int r = 0; r < numRegions; ++r) {
-        hCenters.push_back(hexRandom());
+        hCenters.push_back(grid.hexRandom());
     }
 
     std::vector<int> regions(hMapSize);
@@ -241,12 +130,13 @@ std::vector<std::vector<int>> regionNeighbors(const std::vector<int> &regions)
 {
     assert(regions.size() == unsigned(hMapSize));
 
+    HexGrid grid(hMapWidth, hMapHeight);
     std::vector<std::vector<int>> ret(numRegions);
     for (int i = 0; i < hMapSize; ++i) {
         int reg = regions[i];
         assert(reg >= 0 && reg < numRegions);
 
-        for (const auto &an : aryNeighbors(i)) {
+        for (const auto &an : grid.aryNeighbors(i)) {
             int rNeighbor = regions[an];
             // If an adjacent hex is in a different region and we haven't
             // already recorded that region as a neighbor, save it.
@@ -309,7 +199,8 @@ void sdlBlitAt(const SdlSurface &surf, Sint16 hx, Sint16 hy)
 void sdlBlitAt(const SdlSurface &surf, int aIndex)
 {
     assert(aIndex >= 0 && aIndex < hMapSize);
-    auto hex = hexFromAry(aIndex);
+    HexGrid grid(hMapWidth, hMapHeight);
+    auto hex = grid.hexFromAry(aIndex);
     sdlBlitAt(surf, hex.first, hex.second);
 }
 
@@ -401,13 +292,14 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     }
 
     // Draw the map.
+    HexGrid grid(hMapWidth, hMapHeight);
     for (Sint16 hx = 0; hx < hMapWidth; ++hx) {
         for (Sint16 hy = 0; hy < hMapHeight; ++hy) {
-            auto aPos = aryFromHex(hx, hy);
+            auto aPos = grid.aryFromHex(hx, hy);
             auto terrainIndex = terrain[aPos];
             sdlBlitAt(tiles[terrainIndex], hx, hy);
             for (auto dir : Dir()) {
-                auto aNeighbor = aryGetNeighbor(aPos, dir);
+                auto aNeighbor = grid.aryGetNeighbor(aPos, dir);
                 if (aNeighbor == -1) continue;
                 auto edgeTerrain = getEdge(terrainIndex, terrain[aNeighbor]);
                 if (edgeTerrain >= 0) {
@@ -422,7 +314,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
 
     // left edge
     for (Sint16 hy = -1; hy < hMapHeight; ++hy) {
-        auto aMirror = aryFromHex(0, std::min(hy + 1, hMapHeight - 1));
+        auto aMirror = grid.aryFromHex(0, std::min(hy + 1, hMapHeight - 1));
         auto terrainIndex = terrain[aMirror];
         sdlBlitAt(tiles[terrainIndex], -1, hy);
         // Mirrored hex is to the southeast, so we compute the edge against its
@@ -431,7 +323,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
         // O\_/   O = overdraw area
         //  /M\   M = mirrored hex
         //  \_/
-        auto aNeighbor = aryGetNeighbor(aMirror, Dir::N);
+        auto aNeighbor = grid.aryGetNeighbor(aMirror, Dir::N);
         if (aNeighbor == -1) continue;
         auto edgeTerrain1 = getEdge(terrainIndex, terrain[aNeighbor]);
         if (edgeTerrain1 >= 0) {
@@ -447,7 +339,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     }
     // top edge
     for (Sint16 hx = 1; hx < hMapWidth; hx += 2) {
-        auto aMirror = aryFromHex(hx, 0);
+        auto aMirror = grid.aryFromHex(hx, 0);
         auto terrainIndex = terrain[aMirror];
         sdlBlitAt(tiles[terrainIndex], hx, -1);
         // Mirrored hex is to the south, so we compute the edge against its
@@ -456,7 +348,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
         // /N\_/N\   N = neighbors
         // \_/M\_/   O = overdraw area
         //   \_/     M = mirrored hex
-        auto aNeighbor1 = aryGetNeighbor(aMirror, Dir::NW);
+        auto aNeighbor1 = grid.aryGetNeighbor(aMirror, Dir::NW);
         if (aNeighbor1 != -1) {
             auto edgeTerrain1 = getEdge(terrainIndex, terrain[aNeighbor1]);
             if (edgeTerrain1 >= 0) {
@@ -469,7 +361,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
                 sdlBlitAt(edges[edgeIndex2], aNeighbor1);
             }
         }
-        auto aNeighbor2 = aryGetNeighbor(aMirror, Dir::NE);
+        auto aNeighbor2 = grid.aryGetNeighbor(aMirror, Dir::NE);
         if (aNeighbor2 != -1) {
             auto edgeTerrain3 = getEdge(terrainIndex, terrain[aNeighbor2]);
             if (edgeTerrain3 >= 0) {
@@ -485,8 +377,8 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     }
     // right edge
     for (Sint16 hy = 0; hy < hMapHeight + 1; ++hy) {
-        auto aMirror = aryFromHex(hMapWidth - 1,
-                                  std::min<int>(hy, hMapHeight - 1));
+        auto aMirror = grid.aryFromHex(hMapWidth - 1,
+                                       std::min<int>(hy, hMapHeight - 1));
         auto terrainIndex = terrain[aMirror];
         sdlBlitAt(tiles[terrainIndex], hMapWidth, hy);
         // Mirrored hex is to the southwest, so we compute the edge against its
@@ -496,7 +388,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
         // \_/O   O = overdraw area
         // /M\    M = mirrored hex
         // \_/
-        auto aNeighbor = aryGetNeighbor(aMirror, Dir::N);
+        auto aNeighbor = grid.aryGetNeighbor(aMirror, Dir::N);
         if (aNeighbor == -1) continue;
         auto edgeTerrain1 = getEdge(terrainIndex, terrain[aNeighbor]);
         if (edgeTerrain1 >= 0) {
@@ -511,7 +403,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     }
     // bottom edge
     for (Sint16 hx = 0; hx < hMapWidth; hx += 2) {
-        auto aMirror = aryFromHex(hx, hMapHeight - 1);
+        auto aMirror = grid.aryFromHex(hx, hMapHeight - 1);
         auto terrainIndex = terrain[aMirror];
         sdlBlitAt(tiles[terrainIndex], hx, hMapHeight);
         // Mirrored hex is to the north, so we compute the edge against its
@@ -520,7 +412,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
         //  _/M\_    N = neighbors
         // /N\_/N\   O = overdraw area
         // \_/O\_/   M = mirrored hex
-        auto aNeighbor1 = aryGetNeighbor(aMirror, Dir::SW);
+        auto aNeighbor1 = grid.aryGetNeighbor(aMirror, Dir::SW);
         if (aNeighbor1 != -1) {
             auto edgeTerrain1 = getEdge(terrainIndex, terrain[aNeighbor1]);
             if (edgeTerrain1 >= 0) {
@@ -533,7 +425,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
                 sdlBlitAt(edges[edgeIndex2], aNeighbor1);
             }
         }
-        auto aNeighbor2 = aryGetNeighbor(aMirror, Dir::SE);
+        auto aNeighbor2 = grid.aryGetNeighbor(aMirror, Dir::SE);
         if (aNeighbor2 != -1) {
             auto edgeTerrain3 = getEdge(terrainIndex, terrain[aNeighbor2]);
             if (edgeTerrain3 >= 0) {
@@ -562,20 +454,6 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     }
 
     // TODO: unit tests?
-    for (int i = 0; i < 2; ++i) {
-        auto hex = hexRandom();
-        auto a = aryFromHex(hex);
-        auto aryN = aryNeighbors(a);
-        auto hexN = hexNeighbors(hex);
-        assert(aryN.size() == hexN.size());
-        std::cout << hex << " neighbors are ";
-        for (unsigned int i = 0; i < hexN.size(); ++i) {
-            std::cout << hexN[i] << ',';
-            assert(aryFromHex(hexN[i]) == aryN[i]);
-        }
-        std::cout << '\n';
-    }
-
     int count = 0;
     for (const auto &hNeighbors : adjacencyList) {
         std::cout << count << ": ";
