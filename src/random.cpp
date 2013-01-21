@@ -562,11 +562,6 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     }
 
     // TODO: unit tests?
-    assert(hexDist({1, 1}, {2, 2}) == 1);
-    assert(hexDist({4, 4}, {3, 3}) == 1);
-    assert(hexDist({1, 1}, {3, 3}) == 3);
-    assert(hexDist({7, 7}, {5, 5}) == 3);
-
     for (int i = 0; i < 2; ++i) {
         auto hex = hexRandom();
         auto a = aryFromHex(hex);
