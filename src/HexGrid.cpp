@@ -24,17 +24,25 @@ HexGrid::HexGrid(Sint16 width, Sint16 height)
 
 Point HexGrid::hexFromAry(int aIndex) const
 {
+    if (aIndex < 0 || aIndex >= size_) {
+        return hInvalid;
+    }
+
     return {aIndex % width_, aIndex / width_};
 }
 
 int HexGrid::aryFromHex(Sint16 hx, Sint16 hy) const
 {
-    return hy * width_ + hx;
+    return aryFromHex({hx, hy});
 }
 
 int HexGrid::aryFromHex(const Point &hex) const
 {
-    return aryFromHex(hex.first, hex.second);
+    if (offGrid(hex)) {
+        return -1;
+    }
+
+    return hex.second * width_ + hex.first;
 }
 
 Point HexGrid::hexRandom() const
