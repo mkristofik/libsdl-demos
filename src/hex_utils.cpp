@@ -14,8 +14,8 @@
 #include <algorithm>
 #include <ctime>
 #include <limits>
-#include <ostream>
 #include <random>
+#include <sstream>
 
 bool operator==(const Point &lhs, const Point &rhs)
 {
@@ -27,16 +27,16 @@ bool operator!=(const Point &lhs, const Point &rhs)
     return !(lhs == rhs);
 }
 
-std::ostream & operator<<(std::ostream &os, const Point &p)
+std::string str(const Point &p)
 {
-    os << '(' << p.first << ',' << p.second << ')';
-    return os;
+    std::ostringstream strm;
+    strm << '(' << p.first << ',' << p.second << ')';
+    return strm.str();
 }
 
-std::ostream & operator<<(std::ostream &&os, const Point &p)
+bool invalid(const Point &p)
 {
-    os << p;
-    return os;
+    return p.first < 0 || p.second < 0;
 }
 
 // source: Battle for Wesnoth, distance_between() in map_location.cpp.
@@ -60,6 +60,49 @@ Sint16 hexDist(const Point &h1, const Point &h2)
     return std::max<Sint16>(dx, dy + vPenalty + dx / 2);
 }
 
+Point adjacent(const Point &hSrc, Dir d)
+{
+    auto hx = hSrc.first;
+    auto hy = hSrc.second;
+
+    switch (d) {
+        case Dir::N:
+            return {hx, hy - 1};
+        case Dir::NE:
+            if (hx % 2 == 0) {
+                return {hx + 1, hy - 1};
+            }
+            else {
+                return {hx + 1, hy};
+            }
+        case Dir::SE:
+            if (hx % 2 == 0) {
+                return {hx + 1, hy};
+            }
+            else {
+                return {hx + 1, hy + 1};
+            }
+        case Dir::S:
+            return {hx, hy + 1};
+        case Dir::SW:
+            if (hx % 2 == 0) {
+                return {hx - 1, hy};
+            }
+            else {
+                return {hx - 1, hy + 1};
+            }
+        case Dir::NW:
+            if (hx % 2 == 0) {
+                return {hx - 1, hy - 1};
+            }
+            else {
+                return {hx - 1, hy};
+            }
+        default:
+            return hInvalid;
+    }
+}
+
 HexGrid::HexGrid(Sint16 width, Sint16 height)
     : width_(width),
     height_(height),
@@ -67,22 +110,22 @@ HexGrid::HexGrid(Sint16 width, Sint16 height)
 {
 }
 
-Point HexGrid::hexFromAry(int aIndex)
+Point HexGrid::hexFromAry(int aIndex) const
 {
     return {aIndex % width_, aIndex / width_};
 }
 
-int HexGrid::aryFromHex(Sint16 hx, Sint16 hy)
+int HexGrid::aryFromHex(Sint16 hx, Sint16 hy) const
 {
     return hy * width_ + hx;
 }
 
-int HexGrid::aryFromHex(const Point &hex)
+int HexGrid::aryFromHex(const Point &hex) const
 {
     return aryFromHex(hex.first, hex.second);
 }
 
-Point HexGrid::hexRandom()
+Point HexGrid::hexRandom() const
 {
     static std::minstd_rand gen(static_cast<unsigned int>(std::time(nullptr)));
     static std::uniform_int_distribution<Sint16> dist(0, size_ - 1);
@@ -90,65 +133,27 @@ Point HexGrid::hexRandom()
     return hexFromAry(aRand);
 }
 
-int HexGrid::aryGetNeighbor(int aSrc, Dir d)
+int HexGrid::aryGetNeighbor(int aSrc, Dir d) const
 {
-    // North, below the top row.
-    if (d == Dir::N && aSrc >= width_) {
-        return aSrc - width_;
-    }
-    // Northeast, not in the right column.
-    else if (d == Dir::NE && (aSrc % width_ < width_ - 1)) {
-        if (aSrc % 2 == 0) {
-            if (aSrc >= width_) {
-                return aSrc - width_ + 1;
-            }
-        }
-        else {
-            return aSrc + 1;
-        }
-    }
-    // Southeast, not in the right column.
-    else if (d == Dir::SE && (aSrc % width_ < width_ - 1)) {
-        if (aSrc % 2 == 0) {
-            return aSrc + 1;
-        }
-        else {
-            if (aSrc < size_ - width_) {
-                return aSrc + width_ + 1;
-            }
-        }
-    }
-    // South, above the bottom row.
-    else if (d == Dir::S && (aSrc < size_ - width_)) {
-        return aSrc + width_;
-    }
-    // Southwest, not in the left column.
-    else if (d == Dir::SW && (aSrc % width_ > 0)) {
-        if (aSrc % 2 == 0) {
-            return aSrc - 1;
-        }
-        else {
-            if (aSrc < size_ - width_) {
-                return aSrc + width_ - 1;
-            }
-        }
-    }
-    // Northwest, not in the left column.
-    else if (d == Dir::NW && (aSrc % width_ > 0)) {
-        if (aSrc % 2 == 0) {
-            if (aSrc >= width_) {
-                return aSrc - width_ - 1;
-            }
-        }
-        else {
-            return aSrc - 1;
-        }
+    auto neighbor = adjacent(hexFromAry(aSrc), d);
+    if (offGrid(neighbor)) {
+        return -1;
     }
 
-    return -1;
+    return aryFromHex(neighbor);
 }
 
-std::vector<int> HexGrid::aryNeighbors(int aIndex)
+Point HexGrid::hexGetNeighbor(const Point &hSrc, Dir d) const
+{
+    auto neighbor = adjacent(hSrc, d);
+    if (offGrid(neighbor)) {
+        return hInvalid;
+    }
+
+    return neighbor;
+}
+
+std::vector<int> HexGrid::aryNeighbors(int aIndex) const
 {
     std::vector<int> av;
 
@@ -162,7 +167,7 @@ std::vector<int> HexGrid::aryNeighbors(int aIndex)
     return av;
 }
 
-std::vector<Point> HexGrid::hexNeighbors(const Point &hex)
+std::vector<Point> HexGrid::hexNeighbors(const Point &hex) const
 {
     std::vector<Point> hv;
 
@@ -171,4 +176,11 @@ std::vector<Point> HexGrid::hexNeighbors(const Point &hex)
     }
 
     return hv;
+}
+
+bool HexGrid::offGrid(const Point &hex) const
+{
+    return invalid(hex) ||
+           hex.first >= width_ ||
+           hex.second >= height_;
 }

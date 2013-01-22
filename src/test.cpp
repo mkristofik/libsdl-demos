@@ -76,3 +76,22 @@ BOOST_AUTO_TEST_CASE(Neighbors)
     BOOST_CHECK(contains(hn, Point{15, 7}));
     BOOST_CHECK(contains(hn, Point{14, 8}));
 }
+
+BOOST_AUTO_TEST_CASE(Hex_Get_Neighbor)
+{
+    HexGrid grid(16, 9);
+
+    Point h1{4, 5};
+    int a1 = grid.aryFromHex(h1);
+    for (auto d : Dir()) {
+        BOOST_CHECK_EQUAL(str(grid.hexGetNeighbor(h1, d)),
+                          str(grid.hexFromAry(grid.aryGetNeighbor(a1, d))));
+    }
+
+    Point h2{7, 6};
+    int a2 = grid.aryFromHex(h2);
+    for (auto d : Dir()) {
+        BOOST_CHECK_EQUAL(str(grid.hexGetNeighbor(h2, d)),
+                          str(grid.hexFromAry(grid.aryGetNeighbor(a2, d))));
+    }
+}

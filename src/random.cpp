@@ -19,8 +19,6 @@
 #include <cstdlib>
 #include <iostream>
 #include <limits>
-#include <stdexcept>
-#include <utility>
 #include <vector>
 
 // Experiment with Apps Hungarian notation:
@@ -45,7 +43,7 @@ int rFindClosest(Sint16 hx, Sint16 hy, const std::vector<Point> &hCenters)
     Sint16 bestSoFar = std::numeric_limits<Sint16>::max();
 
     for (int i = 0; i < numRegions; ++i) {
-        Sint16 dist = hexDist(Point(hx, hy), hCenters[i]);
+        Sint16 dist = hexDist(Point{hx, hy}, hCenters[i]);
         if (dist < bestSoFar) {
             rClosest = i;
             bestSoFar = dist;

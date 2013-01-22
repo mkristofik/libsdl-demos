@@ -15,23 +15,36 @@
 
 #include "SDL_types.h"
 #include "iterable_enum_class.h"
-#include <iosfwd>
-#include <vector>
+#include <string>
 #include <utility>
+#include <vector>
 
 using Point = std::pair<Sint16, Sint16>;
 const Point hInvalid = {-1, -1};
 
+bool operator==(const Point &lhs, const Point &rhs);
+bool operator!=(const Point &lhs, const Point &rhs);
+
+// String representation of a Point.  Use this instead of writing operator<<
+// because...
+// - Point is really a std::pair.
+// - ADL won't find operator<< that isn't in namespace std.
+// - It's illegal to add overloads to namespace std.
+// source: http://stackoverflow.com/q/5076206/46821
+std::string str(const Point &p);
+
 enum class Dir {N, NE, SE, S, SW, NW, _last, _first = N};
 ITERABLE_ENUM_CLASS(Dir);
 
-bool operator==(const Point &lhs, const Point &rhs);
-bool operator!=(const Point &lhs, const Point &rhs);
-std::ostream & operator<<(std::ostream &os, const Point &p);
-std::ostream & operator<<(std::ostream &&os, const Point &p);
+// Return true if either dimension is negative.
+bool invalid(const Point &p);
 
 // Distance between hexes, 1 step per tile.
 Sint16 hexDist(const Point &h1, const Point &h2);
+
+// Return the hex adjancent to the source hex in the given direction.  No
+// bounds checking.
+Point adjacent(const Point &hSrc, Dir d);
 
 // Logical view of a hex grid.  Designed to be cheap to create, copy, etc.
 class HexGrid
@@ -42,20 +55,24 @@ public:
     // Two ways to view a hex map: a 2D map of (x,y) coordinates, and a
     // contiguous array.  These functions convert between the two
     // representations.
-    Point hexFromAry(int aIndex);
-    int aryFromHex(Sint16 hx, Sint16 hy);
-    int aryFromHex(const Point &hex);
+    Point hexFromAry(int aIndex) const;
+    int aryFromHex(Sint16 hx, Sint16 hy) const;
+    int aryFromHex(const Point &hex) const;
 
     // Generate a random hex in the range [(0,0), (width-1,height-1)].
-    Point hexRandom();
+    Point hexRandom() const;
 
     // Return the neighbor hex in a given direction from the source hex.  Return
-    // -1 if the neighbor hex would be off the map.
-    int aryGetNeighbor(int aSrc, Dir d);
+    // -1/invalid if the neighbor hex would be off the map.
+    int aryGetNeighbor(int aSrc, Dir d) const;
+    Point hexGetNeighbor(const Point &hSrc, Dir d) const;
 
     // Compute all neighbors of a given hex.  Might have fewer than 6.
-    std::vector<int> aryNeighbors(int aIndex);
-    std::vector<Point> hexNeighbors(const Point &hex);
+    std::vector<int> aryNeighbors(int aIndex) const;
+    std::vector<Point> hexNeighbors(const Point &hex) const;
+
+    // Return true if hex is outside the grid boundary.
+    bool offGrid(const Point &hex) const;
 
 private:
     Sint16 width_;
