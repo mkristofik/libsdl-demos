@@ -17,7 +17,6 @@
 #include "iterable_enum_class.h"
 #include <string>
 #include <utility>
-#include <vector>
 
 using Point = std::pair<Sint16, Sint16>;
 const Point hInvalid = {-1, -1};
@@ -45,39 +44,5 @@ Sint16 hexDist(const Point &h1, const Point &h2);
 // Return the hex adjancent to the source hex in the given direction.  No
 // bounds checking.
 Point adjacent(const Point &hSrc, Dir d);
-
-// Logical view of a hex grid.  Designed to be cheap to create, copy, etc.
-class HexGrid
-{
-public:
-    HexGrid(Sint16 width, Sint16 height);
-
-    // Two ways to view a hex map: a 2D map of (x,y) coordinates, and a
-    // contiguous array.  These functions convert between the two
-    // representations.
-    Point hexFromAry(int aIndex) const;
-    int aryFromHex(Sint16 hx, Sint16 hy) const;
-    int aryFromHex(const Point &hex) const;
-
-    // Generate a random hex in the range [(0,0), (width-1,height-1)].
-    Point hexRandom() const;
-
-    // Return the neighbor hex in a given direction from the source hex.  Return
-    // -1/invalid if the neighbor hex would be off the map.
-    int aryGetNeighbor(int aSrc, Dir d) const;
-    Point hexGetNeighbor(const Point &hSrc, Dir d) const;
-
-    // Compute all neighbors of a given hex.  Might have fewer than 6.
-    std::vector<int> aryNeighbors(int aIndex) const;
-    std::vector<Point> hexNeighbors(const Point &hex) const;
-
-    // Return true if hex is outside the grid boundary.
-    bool offGrid(const Point &hex) const;
-
-private:
-    Sint16 width_;
-    Sint16 height_;
-    Sint16 size_;
-};
 
 #endif

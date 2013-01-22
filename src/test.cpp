@@ -13,6 +13,7 @@
 #define BOOST_TEST_MODULE Hex_Utils_Test
 #include <boost/test/unit_test.hpp>
 
+#include "HexGrid.h"
 #include "hex_utils.h"
 
 BOOST_AUTO_TEST_CASE(Distance)

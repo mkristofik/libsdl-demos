@@ -10,6 +10,7 @@
  
     See the COPYING.txt file for more details.
 */
+#include "HexGrid.h"
 #include "hex_utils.h"
 #include "sdl_helper.h"
 
