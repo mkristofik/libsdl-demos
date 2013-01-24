@@ -11,11 +11,11 @@
     See the COPYING.txt file for more details.
 */
 #include "HexGrid.h"
+#include "Terrain.h"
 #include "hex_utils.h"
 #include "sdl_helper.h"
 
 #include <algorithm>
-#include <bitset>
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
@@ -33,9 +33,6 @@ const Sint16 hMapWidth = 16;
 const Sint16 hMapHeight = 9;
 const Sint16 hMapSize = hMapWidth * hMapHeight;
 const int numRegions = 18;
-
-// Not using enum class because doing math on terrain types is very convenient.
-enum Terrain {GRASS, DIRT, SAND, WATER, SWAMP, SNOW, NUM_TERRAINS};
 
 // Return the closest region to the given hex (hx,hy).
 int rFindClosest(Sint16 hx, Sint16 hy, const std::vector<Point> &hCenters)
@@ -150,38 +147,6 @@ std::vector<std::vector<int>> regionNeighbors(const std::vector<int> &regions)
     return ret;
 }
 
-// Assign a terrain type to each region using the given adjacency list.
-std::vector<int> assignRegionTerrains(const std::vector<std::vector<int>> &adj)
-{
-    std::vector<int> terrain(numRegions, -1);
-
-    // Greedy coloring.  Each region gets a different terrain from its
-    // neighbors, using the lowest number available.
-    for (int r = 0; r < numRegions; ++r) {
-        // For each neighboring region, save which terrains have been assigned.
-        std::bitset<NUM_TERRAINS> assignedTerrains;
-        for (auto rNeighbor : adj[r]) {
-            assert(rNeighbor >= 0 && rNeighbor < numRegions);
-            if (terrain[rNeighbor] > -1) {
-                assignedTerrains[terrain[rNeighbor]] = true;
-            }
-        }
-        if (!assignedTerrains.all()) {
-            for (int t = 0; t < NUM_TERRAINS; ++t) {
-                if (!assignedTerrains[t]) {
-                    terrain[r] = t;
-                    break;
-                }
-            }
-        }
-        else {
-            terrain[r] = 0;
-        }
-    }
-
-    return terrain;
-}
-
 // Note: doesn't do bounds checking so we can overdraw the map edges.
 void sdlBlitAt(const SdlSurface &surf, Sint16 hx, Sint16 hy)
 {
@@ -201,25 +166,6 @@ void sdlBlitAt(const SdlSurface &surf, int aIndex)
     HexGrid grid(hMapWidth, hMapHeight);
     auto hex = grid.hexFromAry(aIndex);
     sdlBlitAt(surf, hex.first, hex.second);
-}
-
-int getEdge(int terrainFrom, int terrainTo)
-{
-    if ((terrainFrom == WATER && terrainTo != WATER) ||
-        (terrainFrom != WATER && terrainTo == WATER) ||
-        (terrainFrom == SAND && terrainTo != SAND) ||
-        (terrainFrom != SAND && terrainTo == SAND)) {
-        return SAND;
-    }
-    else if ((terrainFrom == DIRT && terrainTo == GRASS) ||
-             (terrainFrom == GRASS && terrainTo == DIRT)) {
-        return GRASS;
-    }
-    else if (terrainFrom != terrainTo) {
-        return DIRT;
-    }
-
-    return -1;
 }
 
 extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
@@ -282,7 +228,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
 
     auto regions = generateRegions();
     auto adjacencyList = regionNeighbors(regions);
-    auto regionTerrain = assignRegionTerrains(adjacencyList);
+    auto regionTerrain = graphTerrain(adjacencyList);
 
     // Assign terrain to each hex.
     std::vector<int> terrain(hMapSize, -1);
@@ -460,20 +406,6 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
                  [] (int hn) { std::cout << hn << ','; });
         std::cout << '\n';
         ++count;
-    }
-
-    // Check that we always draw an edge between two different terrains and
-    // that we never draw an edge between two terrains that are the same.
-    for (int i = 0; i < NUM_TERRAINS; ++i) {
-        for (int j = 0; j < NUM_TERRAINS; ++j) {
-            if (i == j) {
-                assert(getEdge(i, j) == -1);
-            }
-            else {
-                auto edge = getEdge(i, j);
-                assert(edge >= 0 && edge < NUM_TERRAINS);
-            }
-        }
     }
 
     return EXIT_SUCCESS;
