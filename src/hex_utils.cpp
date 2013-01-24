@@ -99,3 +99,20 @@ Point adjacent(const Point &hSrc, Dir d)
             return hInvalid;
     }
 }
+
+int findClosest(const Point &hTarget, const std::vector<Point> &hexes)
+{
+    int closest = -1;
+    int size = static_cast<int>(hexes.size());
+    Sint16 bestSoFar = std::numeric_limits<Sint16>::max();
+
+    for (int i = 0; i < size; ++i) {
+        Sint16 dist = hexDist(hTarget, hexes[i]);
+        if (dist < bestSoFar) {
+            closest = i;
+            bestSoFar = dist;
+        }
+    }
+
+    return closest;
+}

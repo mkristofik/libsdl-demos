@@ -22,6 +22,21 @@ HexGrid::HexGrid(Sint16 width, Sint16 height)
 {
 }
 
+Sint16 HexGrid::width() const
+{
+    return width_;
+}
+
+Sint16 HexGrid::height() const
+{
+    return height_;
+}
+
+Sint16 HexGrid::size() const
+{
+    return size_;
+}
+
 Point HexGrid::hexFromAry(int aIndex) const
 {
     if (aIndex < 0 || aIndex >= size_) {

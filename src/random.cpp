@@ -34,23 +34,6 @@ const Sint16 hMapHeight = 9;
 const Sint16 hMapSize = hMapWidth * hMapHeight;
 const int numRegions = 18;
 
-// Return the closest region to the given hex (hx,hy).
-int rFindClosest(Sint16 hx, Sint16 hy, const std::vector<Point> &hCenters)
-{
-    int rClosest = -1;
-    Sint16 bestSoFar = std::numeric_limits<Sint16>::max();
-
-    for (int i = 0; i < numRegions; ++i) {
-        Sint16 dist = hexDist(Point{hx, hy}, hCenters[i]);
-        if (dist < bestSoFar) {
-            rClosest = i;
-            bestSoFar = dist;
-        }
-    }
-
-    return rClosest;
-}
-
 // Compute the centers of mass of each region.
 std::vector<Point> hGetCenters(const std::vector<int> &regions)
 {
@@ -103,7 +86,7 @@ std::vector<int> generateRegions()
         // regions.
         for (Sint16 hx = 0; hx < hMapWidth; ++hx) {
             for (Sint16 hy = 0; hy < hMapHeight; ++hy) {
-                regions[hy * hMapWidth + hx] = rFindClosest(hx, hy, hCenters);
+                regions[hy * hMapWidth + hx] = findClosest(Point{hx, hy}, hCenters);
             }
         }
 
@@ -114,7 +97,7 @@ std::vector<int> generateRegions()
     // Assign each hex to its final region.
     for (Sint16 hx = 0; hx < hMapWidth; ++hx) {
         for (Sint16 hy = 0; hy < hMapHeight; ++hy) {
-            regions[hy * hMapWidth + hx] = rFindClosest(hx, hy, hCenters);
+            regions[hy * hMapWidth + hx] = findClosest(Point{hx, hy}, hCenters);
         }
     }
 

@@ -17,6 +17,7 @@
 #include "iterable_enum_class.h"
 #include <string>
 #include <utility>
+#include <vector>
 
 using Point = std::pair<Sint16, Sint16>;
 const Point hInvalid = {-1, -1};
@@ -44,5 +45,8 @@ Sint16 hexDist(const Point &h1, const Point &h2);
 // Return the hex adjancent to the source hex in the given direction.  No
 // bounds checking.
 Point adjacent(const Point &hSrc, Dir d);
+
+// Given a set of hexes, return the index of the hex closest to the target.
+int findClosest(const Point &hTarget, const std::vector<Point> &hexes);
 
 #endif

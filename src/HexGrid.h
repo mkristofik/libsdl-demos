@@ -22,6 +22,10 @@ class HexGrid
 public:
     HexGrid(Sint16 width, Sint16 height);
 
+    Sint16 width() const;
+    Sint16 height() const;
+    Sint16 size() const;
+
     // Two ways to view a hex map: a 2D map of (x,y) coordinates, and a
     // contiguous array.  These functions convert between the two
     // representations.
