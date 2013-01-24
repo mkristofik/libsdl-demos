@@ -15,8 +15,8 @@
 
 #include "HexGrid.h"
 #include "SDL_types.h"
-#include "Terrain.h"
 #include "hex_utils.h"
+#include "terrain.h"
 #include <vector>
 
 class RandomMap

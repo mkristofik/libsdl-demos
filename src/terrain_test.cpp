@@ -13,7 +13,7 @@
 #define BOOST_TEST_MODULE Terrain_Test
 #include <boost/test/unit_test.hpp>
 
-#include "Terrain.h"
+#include "terrain.h"
 
 // Check that we always draw an edge between two different terrains and that we
 // never draw an edge between two terrains that are the same.

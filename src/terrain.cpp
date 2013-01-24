@@ -10,7 +10,7 @@
  
     See the COPYING.txt file for more details.
 */
-#include "Terrain.h"
+#include "terrain.h"
 #include <bitset>
 #include <cassert>
 

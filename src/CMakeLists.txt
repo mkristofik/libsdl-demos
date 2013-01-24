@@ -23,7 +23,7 @@ add_executable(${EXENAME} hello.cpp)
 target_link_libraries(${EXENAME} mingw32 SDLmain SDL SDL_image SDL_ttf)
 
 set(EXE2 random)
-set(SRC random.cpp HexGrid.cpp RandomMap.cpp Terrain.cpp hex_utils.cpp sdl_helper.cpp)
+set(SRC random.cpp HexGrid.cpp RandomMap.cpp hex_utils.cpp sdl_helper.cpp terrain.cpp)
 add_executable(${EXE2} ${SRC})
 target_link_libraries(${EXE2} mingw32 SDLmain SDL SDL_image)
 
@@ -35,6 +35,6 @@ target_link_libraries(${TEST_EXE} boost_unit_test_framework-mgw47-s-1_52)
 add_test(test_1 ../bin/${TEST_EXE})
 
 set(TEST_EXE2 test2)
-add_executable(${TEST_EXE2} terrain_test.cpp Terrain.cpp)
+add_executable(${TEST_EXE2} terrain_test.cpp terrain.cpp)
 target_link_libraries(${TEST_EXE2} boost_unit_test_framework-mgw47-s-1_52)
 add_test(test_2 ../bin/${TEST_EXE2})

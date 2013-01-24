@@ -11,9 +11,9 @@
     See the COPYING.txt file for more details.
 */
 #include "HexGrid.h"
-#include "Terrain.h"
 #include "hex_utils.h"
 #include "sdl_helper.h"
+#include "terrain.h"
 
 #include <algorithm>
 #include <cassert>
