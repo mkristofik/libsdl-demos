@@ -21,7 +21,7 @@ enum Terrain {GRASS, DIRT, SAND, WATER, SWAMP, SNOW, NUM_TERRAINS};
 
 // Assign terrain to each node in a graph such that no adjacent nodes have the
 // same terrain.  Graph nodes are represented by integers [0,n).
-typedef std::vector<std::vector<int>> AdjacencyList;
+using AdjacencyList = std::vector<std::vector<int>>;
 std::vector<int> graphTerrain(const AdjacencyList &graph);
 
 // Return the edge transition to draw between two tiles.  Return -1 if no edge

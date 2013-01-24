@@ -46,7 +46,7 @@ Sint16 hexDist(const Point &h1, const Point &h2);
 // bounds checking.
 Point adjacent(const Point &hSrc, Dir d);
 
-// Given a set of hexes, return the index of the hex closest to the target.
+// Given a list of hexes, return the index of the hex closest to the target.
 int findClosest(const Point &hTarget, const std::vector<Point> &hexes);
 
 #endif

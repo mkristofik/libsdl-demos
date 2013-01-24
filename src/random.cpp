@@ -56,8 +56,8 @@ std::vector<Point> hGetCenters(const std::vector<int> &regions)
 
     for (int r = 0; r < numRegions; ++r) {
         // The voronoi algorithm sometimes leads to regions being "absorbed" by
-        // their neighbors, leaving no hexes left.  Leave the default (invalid)
-        // center hex in place for such a region.
+        // their neighbors.  Leave the default (invalid) center hex in place
+        // for an empty region.
         if (numHexes[r] > 0) {
             auto &hc = hCenters[r];
             auto &hs = hexSums[r];
@@ -76,6 +76,7 @@ std::vector<int> generateRegions()
     // duplicates.
     HexGrid grid(hMapWidth, hMapHeight);
     std::vector<Point> hCenters;
+    // FIXME: this could use generate_n
     for (int r = 0; r < numRegions; ++r) {
         hCenters.push_back(grid.hexRandom());
     }
