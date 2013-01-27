@@ -48,6 +48,10 @@ public:
     // Return true if hex is outside the grid boundary.
     bool offGrid(const Point &hex) const;
 
+    // Accessors for the four corners of the grid.
+    int aryCorner(Dir d) const;
+    Point hexCorner(Dir d) const;
+
 private:
     Sint16 width_;
     Sint16 height_;

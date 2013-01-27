@@ -11,6 +11,7 @@
     See the COPYING.txt file for more details.
 */
 #include "HexGrid.h"
+#include "RandomMap.h"
 #include "hex_utils.h"
 #include "sdl_helper.h"
 #include "terrain.h"
@@ -213,6 +214,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     auto regions = generateRegions();
     auto adjacencyList = regionNeighbors(regions);
     auto regionTerrain = graphTerrain(adjacencyList);
+    RandomMap m(16, 9);  // test
 
     // Assign terrain to each hex.
     std::vector<int> terrain(hMapSize, -1);

@@ -30,16 +30,24 @@ private:
     void generateRegions();
 
     // Compute the "center of mass" for each region.
-    std::vector<Point> getHexCenters() const;
+    void recalcHexCenters();
 
     // Construct an adjacency list for each region.
     void buildRegionGraph();
 
-    HexGrid hgrid_;
+    // Assign terrain types to each hex.
+    void assignTerrain();
+
+    HexGrid mgrid_;
     int numRegions_;
-    std::vector<int> regions_;
-    std::vector<int> terrain_;
+    std::vector<int> regions_;  // assign each tile to a region [0,numRegions)
+    std::vector<Point> centers_;  // center hex of each region
     AdjacencyList regionGraph_;
+
+    // To help make the edges of the map look nice, we extend the grid by one
+    // hex in every direction.
+    HexGrid tgrid_;
+    std::vector<int> terrain_;
 };
 
 #endif

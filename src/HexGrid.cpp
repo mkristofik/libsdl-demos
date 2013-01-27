@@ -11,6 +11,7 @@
     See the COPYING.txt file for more details.
 */
 #include "HexGrid.h"
+#include <cassert>
 #include <ctime>
 #include <limits>
 #include <random>
@@ -118,4 +119,25 @@ bool HexGrid::offGrid(const Point &hex) const
     return invalid(hex) ||
            hex.first >= width_ ||
            hex.second >= height_;
+}
+
+int HexGrid::aryCorner(Dir d) const
+{
+    switch (d) {
+        case Dir::NW:
+            return 0;
+        case Dir::NE:
+            return width_ - 1;
+        case Dir::SE:
+            return size_ - 1;
+        case Dir::SW:
+            return size_ - width_;
+        default:
+            assert(false);
+    }
+}
+
+Point HexGrid::hexCorner(Dir d) const
+{
+    return hexFromAry(aryCorner(d));
 }
