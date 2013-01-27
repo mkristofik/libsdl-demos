@@ -24,6 +24,11 @@ bool operator!=(const Point &lhs, const Point &rhs)
     return !(lhs == rhs);
 }
 
+Point operator+(const Point &lhs, const Point &rhs)
+{
+    return {lhs.first + rhs.first, lhs.second + rhs.second};
+}
+
 std::string str(const Point &p)
 {
     std::ostringstream strm;
@@ -60,40 +65,39 @@ Sint16 hexDist(const Point &h1, const Point &h2)
 Point adjacent(const Point &hSrc, Dir d)
 {
     auto hx = hSrc.first;
-    auto hy = hSrc.second;
 
     switch (d) {
         case Dir::N:
-            return {hx, hy - 1};
+            return hSrc + Point{0, -1};
         case Dir::NE:
             if (hx % 2 == 0) {
-                return {hx + 1, hy - 1};
+                return hSrc + Point{1, -1};
             }
             else {
-                return {hx + 1, hy};
+                return hSrc + Point{1, 0};
             }
         case Dir::SE:
             if (hx % 2 == 0) {
-                return {hx + 1, hy};
+                return hSrc + Point{1, 0};
             }
             else {
-                return {hx + 1, hy + 1};
+                return hSrc + Point{1, 1};
             }
         case Dir::S:
-            return {hx, hy + 1};
+            return hSrc + Point{0, 1};
         case Dir::SW:
             if (hx % 2 == 0) {
-                return {hx - 1, hy};
+                return hSrc + Point{-1, 0};
             }
             else {
-                return {hx - 1, hy + 1};
+                return hSrc + Point{-1, 1};
             }
         case Dir::NW:
             if (hx % 2 == 0) {
-                return {hx - 1, hy - 1};
+                return hSrc + Point{-1, -1};
             }
             else {
-                return {hx - 1, hy};
+                return hSrc + Point{-1, 0};
             }
         default:
             return hInvalid;

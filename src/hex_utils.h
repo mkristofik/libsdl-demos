@@ -24,6 +24,7 @@ const Point hInvalid = {-1, -1};
 
 bool operator==(const Point &lhs, const Point &rhs);
 bool operator!=(const Point &lhs, const Point &rhs);
+Point operator+(const Point &lhs, const Point &rhs);
 
 // String representation of a Point.  Use this instead of writing operator<<
 // because...
