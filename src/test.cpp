@@ -14,6 +14,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "HexGrid.h"
+#include "algo.h"
 #include "hex_utils.h"
 
 BOOST_AUTO_TEST_CASE(Distance)
@@ -41,12 +42,6 @@ BOOST_AUTO_TEST_CASE(Array_Index_To_Hex)
             BOOST_CHECK_EQUAL(grid.aryFromHex(hexN[i]), aryN[i]);
         }
     }
-}
-
-template <class Container, class T>
-bool contains(const Container& c, const T& elem)
-{
-    return find(std::begin(c), std::end(c), elem) != std::end(c);
 }
 
 BOOST_AUTO_TEST_CASE(Neighbors)
