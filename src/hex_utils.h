@@ -21,6 +21,7 @@
 
 using Point = std::pair<Sint16, Sint16>;
 const Point hInvalid = {-1, -1};
+const Sint16 pHexSize = 72;
 
 bool operator==(const Point &lhs, const Point &rhs);
 bool operator!=(const Point &lhs, const Point &rhs);

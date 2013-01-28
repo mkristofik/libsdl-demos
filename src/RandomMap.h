@@ -28,15 +28,20 @@ public:
 private:
     // Use a Voronoi diagram to generate a random set of regions.
     void generateRegions();
-
-    // Compute the "center of mass" for each region.
     void recalcHexCenters();
 
     // Construct an adjacency list for each region.
     void buildRegionGraph();
 
-    // Assign terrain types to each hex.
     void assignTerrain();
+    void drawTile(Sint16 hx, Sint16 hy);
+
+    // The terrain grid extends from (-1,-1) to (hWidth,hHeight) inclusive on
+    // the main grid.  These conversions let us always refer to the map in main
+    // grid coordinates.  Return -1 if the result is outside the terrain grid.
+    int tIndex(int mIndex) const;
+    int tIndex(const Point &mHex) const;
+    int tIndex(Sint16 hx, Sint16 hy) const;
 
     HexGrid mgrid_;
     int numRegions_;

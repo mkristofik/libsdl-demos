@@ -16,6 +16,7 @@
 #include "terrain.h"
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <iterator>
 
 namespace {
@@ -75,6 +76,11 @@ RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight)
 
 void RandomMap::draw()
 {
+    for (Sint16 hx = -1; hx <= mgrid_.width(); ++hx) {
+        for (Sint16 hy = -1; hy <= mgrid_.height(); ++hy) {
+            drawTile(hx, hy);
+        }
+    }
 }
 
 void RandomMap::generateRegions()
@@ -151,46 +157,86 @@ void RandomMap::assignTerrain()
 {
     auto rTerrain = graphTerrain(regionGraph_);
 
-    // Assign the terrain for the main grid.  Adjust for the terrain grid being
-    // larger.
+    // Assign the terrain for the main grid.
     for (auto i = 0u; i < regions_.size(); ++i) {
-        auto mHex = mgrid_.hexFromAry(i);
-        auto tHex = mHex + Point{1, 1};
-        auto tIndex = tgrid_.aryFromHex(tHex);
-        terrain_[tIndex] = rTerrain[regions_[i]];
+        terrain_[tIndex(i)] = rTerrain[regions_[i]];
     }
 
     // Corners of the terrain grid mirror those of the main grid.
     auto nw = tgrid_.aryCorner(Dir::NW);
-    auto nwNeighbor = tgrid_.aryGetNeighbor(nw, Dir::SE);
-    terrain_[nw] = terrain_[nwNeighbor];
+    auto nwMirror = tIndex(mgrid_.aryCorner(Dir::NW));
+    terrain_[nw] = terrain_[nwMirror];
     auto ne = tgrid_.aryCorner(Dir::NE);
-    auto neNeighbor = tgrid_.aryGetNeighbor(ne, Dir::SW);
-    terrain_[ne] = terrain_[neNeighbor];
+    auto neMirror = tIndex(mgrid_.aryCorner(Dir::NE));
+    terrain_[ne] = terrain_[neMirror];
     auto se = tgrid_.aryCorner(Dir::SE);
-    auto seNeighbor = tgrid_.aryGetNeighbor(se, Dir::NW);
-    terrain_[se] = terrain_[seNeighbor];
+    auto seMirror = tIndex(mgrid_.aryCorner(Dir::SE));
+    terrain_[se] = terrain_[seMirror];
     auto sw = tgrid_.aryCorner(Dir::SW);
-    auto swNeighbor = tgrid_.aryGetNeighbor(sw, Dir::NE);
-    terrain_[sw] = terrain_[swNeighbor];
+    auto swMirror = tIndex(mgrid_.aryCorner(Dir::SW));
+    terrain_[sw] = terrain_[swMirror];
 
-    // Hexes along the edges mirror the edges of the main grid.
-    for (Sint16 hx = 1; hx < mgrid_.width(); ++hx) {
-        auto topIndex = tgrid_.aryFromHex(hx, 0);
-        auto topNeighbor = tgrid_.aryGetNeighbor(topIndex, Dir::S);
-        terrain_[topIndex] = terrain_[topNeighbor];
+    // Hexes along the top and bottom edges mirror those directly below and
+    // above, respectively.
+    for (Sint16 hx = 0; hx < mgrid_.width(); ++hx) {
+        Point top = {hx, -1};
+        auto topMirror = adjacent(top, Dir::S);
+        terrain_[tIndex(top)] = terrain_[tIndex(topMirror)];
 
-        auto bottomIndex = tgrid_.aryFromHex(hx, tgrid_.height() - 1);
-        auto bottomNeighbor = tgrid_.aryGetNeighbor(bottomIndex, Dir::N);
-        terrain_[bottomIndex] = terrain_[bottomNeighbor];
+        Point bottom = {hx, mgrid_.height()};
+        auto bottomMirror = adjacent(bottom, Dir::N);
+        terrain_[tIndex(bottom)] = terrain_[tIndex(bottomMirror)];
     }
-    for (Sint16 hy = 1; hy < mgrid_.height(); ++hy) {
-        auto leftIndex = tgrid_.aryFromHex(0, hy);
-        auto leftNeighbor = tgrid_.aryGetNeighbor(leftIndex, Dir::NE);
-        terrain_[leftIndex] = terrain_[leftNeighbor];
+    // Hexes along the left and right edges mirror their NE and SW neighbors,
+    // respectively.
+    for (Sint16 hy = 0; hy < mgrid_.height(); ++hy) {
+        Point left = {-1, hy};
+        auto leftMirror = adjacent(left, Dir::NE);
+        terrain_[tIndex(left)] = terrain_[tIndex(leftMirror)];
 
-        auto rightIndex = tgrid_.aryFromHex(tgrid_.width() - 1, hy);
-        auto rightNeighbor = tgrid_.aryGetNeighbor(rightIndex, Dir::SW);
-        terrain_[rightIndex] = terrain_[rightNeighbor];
+        Point right = {mgrid_.width(), hy};
+        auto rightMirror = adjacent(right, Dir::SW);
+        terrain_[tIndex(right)] = terrain_[tIndex(rightMirror)];
     }
+}
+
+void RandomMap::drawTile(Sint16 hx, Sint16 hy)
+{
+    Sint16 px = hx * pHexSize * 0.75;
+    Sint16 py = (hy + 0.5 * abs(hx % 2)) * pHexSize;
+    auto terrainType = terrain_[tIndex(hx, hy)];
+    sdlBlit(tiles[terrainType], px, py);
+
+    // Draw edge transitions for each neighboring tile.
+    for (auto dir : Dir()) {
+        auto neighbor = adjacent(Point{hx, hy}, dir);
+        auto neighborIndex = tIndex(neighbor);
+        if (neighborIndex == -1) continue;
+        auto edgeType = getEdge(terrainType, terrain_[neighborIndex]);
+        if (edgeType >= 0) {
+            int e = edgeType * 6 + int(dir);
+            sdlBlit(edges[e], px, py);
+        }
+    }
+}
+
+int RandomMap::tIndex(int mIndex) const
+{
+    assert(mIndex >= 0 && mIndex < mgrid_.size());
+    return tIndex(mgrid_.hexFromAry(mIndex));
+}
+
+int RandomMap::tIndex(const Point &mHex) const
+{
+    auto tHex = mHex + Point{1, 1};
+    if (tgrid_.offGrid(tHex)) {
+        return -1;
+    }
+
+    return tgrid_.aryFromHex(tHex);
+}
+
+int RandomMap::tIndex(Sint16 hx, Sint16 hy) const
+{
+    return tIndex(Point{hx, hy});
 }
