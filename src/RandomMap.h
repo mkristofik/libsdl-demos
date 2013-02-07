@@ -14,16 +14,17 @@
 #define RANDOM_MAP_H
 
 #include "HexGrid.h"
-#include "SDL_types.h"
 #include "hex_utils.h"
+#include "sdl_helper.h"
 #include "terrain.h"
 #include <vector>
 
 class RandomMap
 {
 public:
-    RandomMap(Sint16 hWidth, Sint16 hHeight);
+    RandomMap(Sint16 hWidth, Sint16 hHeight, SDL_Rect pDisplayArea);
     void draw();
+    Point getHexAt(Sint16 spx, Sint16 spy) const;
 
 private:
     // Use a Voronoi diagram to generate a random set of regions.
@@ -53,6 +54,12 @@ private:
     // hex in every direction.
     HexGrid tgrid_;
     std::vector<int> terrain_;
+
+    SDL_Rect pDisplayArea_;
+
+    // Current upper-left pixel of the visible portion of the map.
+    Sint16 px_;
+    Sint16 py_;
 };
 
 #endif

@@ -46,14 +46,23 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
         std::cerr << "Warning: error loading icon file: " << IMG_GetError();
     }
 
-    screen = SDL_SetVideoMode(882, 684, 0, SDL_SWSURFACE);
+    Uint16 winWidth = 882;
+    Uint16 winHeight = 684;
+    screen = SDL_SetVideoMode(winWidth, winHeight, 0, SDL_SWSURFACE);
     if (screen == nullptr) {
         std::cerr << "Error setting video mode: " << SDL_GetError();
         return EXIT_FAILURE;    
     }
     SDL_WM_SetCaption("Random Map Test", "");
 
-    RandomMap m(16, 9);
+    RandomMap m(16, 9, {0, 0, winWidth, winHeight});
+
+    // TODO: unit tests for this would require an SDL main
+    assert(str(m.getHexAt(0, 0)) == str(Point{-1, -1}));
+    assert(str(m.getHexAt(36, 36)) == str(Point{0, 0}));
+    assert(str(m.getHexAt(36, 108)) == str(Point{0, 1}));
+    assert(str(m.getHexAt(90, 144)) == str(Point{1, 1}));
+
     m.draw();
     SDL_UpdateRect(screen, 0, 0, 0, 0);
 

@@ -12,7 +12,6 @@
 */
 #include "RandomMap.h"
 #include "algo.h"
-#include "sdl_helper.h"
 #include "terrain.h"
 #include <algorithm>
 #include <cassert>
@@ -59,16 +58,18 @@ namespace {
     }
 }
 
-RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight)
+RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, SDL_Rect pDisplayArea)
     : mgrid_(hWidth, hHeight),
     numRegions_(18),
     regions_(mgrid_.size(), -1),
     centers_(),
     regionGraph_(numRegions_),
     tgrid_(hWidth + 2, hHeight + 2),
-    terrain_(tgrid_.size())
+    terrain_(tgrid_.size()),
+    pDisplayArea_(pDisplayArea),
+    px_(0),
+    py_(0)
 {
-    loadTiles();
     generateRegions();
     buildRegionGraph();
     assignTerrain();
@@ -76,11 +77,61 @@ RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight)
 
 void RandomMap::draw()
 {
+    loadTiles();
     for (Sint16 hx = -1; hx <= mgrid_.width(); ++hx) {
         for (Sint16 hy = -1; hy <= mgrid_.height(); ++hy) {
             drawTile(hx, hy);
         }
     }
+}
+
+// source: Battle for Wesnoth, pixel_position_to_hex() in display.cpp.
+Point RandomMap::getHexAt(Sint16 spx, Sint16 spy) const
+{
+    // tilingWidth
+    // |   |
+    //  _     _
+    // / \_    tilingHeight
+    // \_/ \  _
+    //   \_/
+    const Sint16 tilingWidth = pHexSize * 3 / 2;
+    const Sint16 tilingHeight = pHexSize;
+
+    // Convert screen coordinates to map pixel coordinates.
+    Sint16 mpx = px_ + spx - pDisplayArea_.x;
+    Sint16 mpy = py_ + spy - pDisplayArea_.y;
+
+    Sint16 hx = mpx / tilingWidth * 2;
+    Sint16 xMod = mpx % tilingWidth;
+    Sint16 hy = mpy / tilingHeight;
+    Sint16 yMod = mpy % tilingHeight;
+
+    if (yMod < tilingWidth / 2) {
+        if ((xMod * 2 + yMod) < (pHexSize / 2)) {
+            --hx;
+            --hy;
+        }
+        else if ((xMod * 2 - yMod) < (pHexSize * 3 / 2)) {
+            // in the middle, do nothing
+        }
+        else {
+            ++hx;
+            --hy;
+        }
+    }
+    else {
+        if ((xMod * 2 - (yMod - pHexSize / 2)) < 0) {
+            --hx;
+        }
+        else if ((xMod * 2 + (yMod - pHexSize / 2)) < pHexSize * 2) {
+            // in the middle, do nothing
+        }
+        else {
+            ++hx;
+        }
+    }
+
+    return {hx, hy};
 }
 
 void RandomMap::generateRegions()
