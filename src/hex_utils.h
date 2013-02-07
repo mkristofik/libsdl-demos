@@ -13,7 +13,8 @@
 #ifndef HEX_UTILS_H
 #define HEX_UTILS_H
 
-#include "SDL_types.h"
+#include "SDL_stdinc.h"
+#include "SDL_video.h"
 #include "iterable_enum_class.h"
 #include <string>
 #include <utility>
@@ -50,5 +51,7 @@ Point adjacent(const Point &hSrc, Dir d);
 
 // Given a list of hexes, return the index of the hex closest to the target.
 int findClosest(const Point &hTarget, const std::vector<Point> &hexes);
+
+bool insideRect(const Point &p, const SDL_Rect &rect);
 
 #endif

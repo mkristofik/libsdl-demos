@@ -58,10 +58,11 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     RandomMap m(16, 9, {0, 0, winWidth, winHeight});
 
     // TODO: unit tests for this would require an SDL main
-    assert(str(m.getHexAt(0, 0)) == str(Point{-1, -1}));
-    assert(str(m.getHexAt(36, 36)) == str(Point{0, 0}));
-    assert(str(m.getHexAt(36, 108)) == str(Point{0, 1}));
-    assert(str(m.getHexAt(90, 144)) == str(Point{1, 1}));
+    assert(str(m.getHexAt(-1, -1)) == str(hInvalid));
+    assert(str(m.getHexAt(0, 0)) == str({-1, -1}));
+    assert(str(m.getHexAt(36, 36)) == str({0, 0}));
+    assert(str(m.getHexAt(36, 108)) == str({0, 1}));
+    assert(str(m.getHexAt(90, 144)) == str({1, 1}));
 
     m.draw();
     SDL_UpdateRect(screen, 0, 0, 0, 0);

@@ -12,6 +12,7 @@
 */
 #include "RandomMap.h"
 #include "algo.h"
+#include "sdl_helper.h"
 #include "terrain.h"
 #include <algorithm>
 #include <cassert>
@@ -88,6 +89,10 @@ void RandomMap::draw()
 // source: Battle for Wesnoth, pixel_position_to_hex() in display.cpp.
 Point RandomMap::getHexAt(Sint16 spx, Sint16 spy) const
 {
+    if (!insideRect({spx, spy}, pDisplayArea_)) {
+        return hInvalid;
+    }
+
     // tilingWidth
     // |   |
     //  _     _
@@ -260,7 +265,7 @@ void RandomMap::drawTile(Sint16 hx, Sint16 hy)
 
     // Draw edge transitions for each neighboring tile.
     for (auto dir : Dir()) {
-        auto neighbor = adjacent(Point{hx, hy}, dir);
+        auto neighbor = adjacent({hx, hy}, dir);
         auto neighborIndex = tIndex(neighbor);
         if (neighborIndex == -1) continue;
         auto edgeType = getEdge(terrainType, terrain_[neighborIndex]);
@@ -289,5 +294,5 @@ int RandomMap::tIndex(const Point &mHex) const
 
 int RandomMap::tIndex(Sint16 hx, Sint16 hy) const
 {
-    return tIndex(Point{hx, hy});
+    return tIndex({hx, hy});
 }

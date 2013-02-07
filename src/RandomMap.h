@@ -14,8 +14,9 @@
 #define RANDOM_MAP_H
 
 #include "HexGrid.h"
+#include "SDL_stdinc.h"
+#include "SDL_video.h"
 #include "hex_utils.h"
-#include "sdl_helper.h"
 #include "terrain.h"
 #include <vector>
 
