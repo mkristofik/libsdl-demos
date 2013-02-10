@@ -84,7 +84,7 @@ RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, SDL_Rect pDisplayArea)
     regionGraph_(numRegions_),
     tgrid_(hWidth + 2, hHeight + 2),
     terrain_(tgrid_.size()),
-    pDisplayArea_(pDisplayArea),
+    pDisplayArea_(std::move(pDisplayArea)),
     px_(0),
     py_(0)
 {
@@ -104,12 +104,25 @@ void RandomMap::draw(Sint16 mpx, Sint16 mpy)
     assert(nwHex != hInvalid);
     assert(seHex != hInvalid);
 
+    // If rightmost visible hex is in an odd column, then we know it's shifted
+    // down by a half hex when drawn.  To make sure we overdraw enough to cover
+    // the bottom of the screen, draw one more row.
+    if (seHex.first % 2 != 0) {
+        ++seHex.second;
+    }
+
+    // FIXME: RAII this, kinda like ScopeGuard11.  I expect it to be common.
+    SDL_Rect temp;
+    SDL_GetClipRect(screen, &temp);
+    SDL_SetClipRect(screen, &pDisplayArea_);
+
     loadTiles();
     for (Sint16 hx = nwHex.first; hx <= seHex.first; ++hx) {
         for (Sint16 hy = nwHex.second; hy <= seHex.second; ++hy) {
             drawTile(hx, hy);
         }
     }
+    SDL_SetClipRect(screen, &temp);
 }
 
 // source: Battle for Wesnoth, pixel_position_to_hex() in display.cpp.
