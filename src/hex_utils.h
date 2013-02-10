@@ -16,12 +16,15 @@
 #include "SDL_stdinc.h"
 #include "SDL_video.h"
 #include "iterable_enum_class.h"
+#include <limits>
 #include <string>
 #include <utility>
 #include <vector>
 
+const Sint16 sint16_min = std::numeric_limits<Sint16>::min();
+
 using Point = std::pair<Sint16, Sint16>;
-const Point hInvalid = {-1, -1};
+const Point hInvalid = {sint16_min, sint16_min};
 const Sint16 pHexSize = 72;
 
 bool operator==(const Point &lhs, const Point &rhs);

@@ -18,6 +18,7 @@
 #include <cassert>
 #include <cmath>
 #include <iterator>
+#include <tuple>
 
 namespace {
     std::vector<SdlSurface> tiles;
@@ -29,32 +30,48 @@ namespace {
 
         // Load the tiles in the same order as Terrain enum.
         if (tiles.empty()) {
-            tiles.push_back(sdlLoadImage("../img/grass.png"));
-            tiles.push_back(sdlLoadImage("../img/dirt.png"));
-            tiles.push_back(sdlLoadImage("../img/desert.png"));
-            tiles.push_back(sdlLoadImage("../img/water.png"));
-            tiles.push_back(sdlLoadImage("../img/swamp.png"));
-            tiles.push_back(sdlLoadImage("../img/snow.png"));
+            tiles.emplace_back(sdlLoadImage("../img/grass.png"));
+            tiles.emplace_back(sdlLoadImage("../img/dirt.png"));
+            tiles.emplace_back(sdlLoadImage("../img/desert.png"));
+            tiles.emplace_back(sdlLoadImage("../img/water.png"));
+            tiles.emplace_back(sdlLoadImage("../img/swamp.png"));
+            tiles.emplace_back(sdlLoadImage("../img/snow.png"));
         }
         if (edges.empty()) {
-            edges.push_back(sdlLoadImage("../img/grass-n.png"));
-            edges.push_back(sdlLoadImage("../img/grass-ne.png"));
-            edges.push_back(sdlLoadImage("../img/grass-se.png"));
-            edges.push_back(sdlLoadImage("../img/grass-s.png"));
-            edges.push_back(sdlLoadImage("../img/grass-sw.png"));
-            edges.push_back(sdlLoadImage("../img/grass-nw.png"));
-            edges.push_back(sdlLoadImage("../img/dirt-n.png"));
-            edges.push_back(sdlLoadImage("../img/dirt-ne.png"));
-            edges.push_back(sdlLoadImage("../img/dirt-se.png"));
-            edges.push_back(sdlLoadImage("../img/dirt-s.png"));
-            edges.push_back(sdlLoadImage("../img/dirt-sw.png"));
-            edges.push_back(sdlLoadImage("../img/dirt-nw.png"));
-            edges.push_back(sdlLoadImage("../img/beach-n.png"));
-            edges.push_back(sdlLoadImage("../img/beach-ne.png"));
-            edges.push_back(sdlLoadImage("../img/beach-se.png"));
-            edges.push_back(sdlLoadImage("../img/beach-s.png"));
-            edges.push_back(sdlLoadImage("../img/beach-sw.png"));
-            edges.push_back(sdlLoadImage("../img/beach-nw.png"));
+            edges.emplace_back(sdlLoadImage("../img/grass-n.png"));
+            edges.emplace_back(sdlLoadImage("../img/grass-ne.png"));
+            edges.emplace_back(sdlLoadImage("../img/grass-se.png"));
+            edges.emplace_back(sdlLoadImage("../img/grass-s.png"));
+            edges.emplace_back(sdlLoadImage("../img/grass-sw.png"));
+            edges.emplace_back(sdlLoadImage("../img/grass-nw.png"));
+            edges.emplace_back(sdlLoadImage("../img/dirt-n.png"));
+            edges.emplace_back(sdlLoadImage("../img/dirt-ne.png"));
+            edges.emplace_back(sdlLoadImage("../img/dirt-se.png"));
+            edges.emplace_back(sdlLoadImage("../img/dirt-s.png"));
+            edges.emplace_back(sdlLoadImage("../img/dirt-sw.png"));
+            edges.emplace_back(sdlLoadImage("../img/dirt-nw.png"));
+            edges.emplace_back(sdlLoadImage("../img/beach-n.png"));
+            edges.emplace_back(sdlLoadImage("../img/beach-ne.png"));
+            edges.emplace_back(sdlLoadImage("../img/beach-se.png"));
+            edges.emplace_back(sdlLoadImage("../img/beach-s.png"));
+            edges.emplace_back(sdlLoadImage("../img/beach-sw.png"));
+            edges.emplace_back(sdlLoadImage("../img/beach-nw.png"));
+        }
+    }
+
+    Point rectCorner(const SDL_Rect &rect, Dir d)
+    {
+        switch (d) {
+            case Dir::NW:
+                return {rect.x, rect.y};
+            case Dir::NE:
+                return {rect.x + rect.w - 1, rect.y};
+            case Dir::SE:
+                return {rect.x + rect.w - 1, rect.y + rect.h - 1};
+            case Dir::SW:
+                return {rect.x, rect.y + rect.h - 1};
+            default:
+                assert(false);
         }
     }
 }
@@ -76,11 +93,20 @@ RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, SDL_Rect pDisplayArea)
     assignTerrain();
 }
 
-void RandomMap::draw()
+void RandomMap::draw(Sint16 mpx, Sint16 mpy)
 {
+    // TODO: verify we won't draw past the map boundary.
+    px_ = mpx;
+    py_ = mpy;
+
+    auto nwHex = getHexAt(rectCorner(pDisplayArea_, Dir::NW));
+    auto seHex = getHexAt(rectCorner(pDisplayArea_, Dir::SE));
+    assert(nwHex != hInvalid);
+    assert(seHex != hInvalid);
+
     loadTiles();
-    for (Sint16 hx = -1; hx <= mgrid_.width(); ++hx) {
-        for (Sint16 hy = -1; hy <= mgrid_.height(); ++hy) {
+    for (Sint16 hx = nwHex.first; hx <= seHex.first; ++hx) {
+        for (Sint16 hy = nwHex.second; hy <= seHex.second; ++hy) {
             drawTile(hx, hy);
         }
     }
@@ -89,7 +115,12 @@ void RandomMap::draw()
 // source: Battle for Wesnoth, pixel_position_to_hex() in display.cpp.
 Point RandomMap::getHexAt(Sint16 spx, Sint16 spy) const
 {
-    if (!insideRect({spx, spy}, pDisplayArea_)) {
+    return getHexAt({spx, spy});
+}
+
+Point RandomMap::getHexAt(const Point &sp) const
+{
+    if (!insideRect(sp, pDisplayArea_)) {
         return hInvalid;
     }
 
@@ -103,9 +134,11 @@ Point RandomMap::getHexAt(Sint16 spx, Sint16 spy) const
     const Sint16 tilingHeight = pHexSize;
 
     // Convert screen coordinates to map pixel coordinates.
-    Sint16 mpx = px_ + spx - pDisplayArea_.x;
-    Sint16 mpy = py_ + spy - pDisplayArea_.y;
+    Sint16 mpx = 0;
+    Sint16 mpy = 0;
+    std::tie(mpx, mpy) = mPixel(sp);
 
+    // I'm not going to pretend to know why the rest of this works.
     Sint16 hx = mpx / tilingWidth * 2;
     Sint16 xMod = mpx % tilingWidth;
     Sint16 hy = mpy / tilingHeight;
@@ -117,7 +150,7 @@ Point RandomMap::getHexAt(Sint16 spx, Sint16 spy) const
             --hy;
         }
         else if ((xMod * 2 - yMod) < (pHexSize * 3 / 2)) {
-            // in the middle, do nothing
+            // do nothing
         }
         else {
             ++hx;
@@ -129,7 +162,7 @@ Point RandomMap::getHexAt(Sint16 spx, Sint16 spy) const
             --hx;
         }
         else if ((xMod * 2 + (yMod - pHexSize / 2)) < pHexSize * 2) {
-            // in the middle, do nothing
+            // do nothing
         }
         else {
             ++hx;
@@ -295,4 +328,11 @@ int RandomMap::tIndex(const Point &mHex) const
 int RandomMap::tIndex(Sint16 hx, Sint16 hy) const
 {
     return tIndex({hx, hy});
+}
+
+Point RandomMap::mPixel(const Point &sp) const
+{
+    Sint16 mpx = px_ + sp.first - pDisplayArea_.x;
+    Sint16 mpy = py_ + sp.second - pDisplayArea_.y;
+    return {mpx, mpy};
 }

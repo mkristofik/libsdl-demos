@@ -64,7 +64,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     assert(str(m.getHexAt(36, 108)) == str({0, 1}));
     assert(str(m.getHexAt(90, 144)) == str({1, 1}));
 
-    m.draw();
+    m.draw(0, 0);
     SDL_UpdateRect(screen, 0, 0, 0, 0);
 
     bool isDone = false;
