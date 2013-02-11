@@ -68,7 +68,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
         m.draw(x, y);
         SDL_UpdateRect(screen, 0, 0, 0, 0);
         SDL_Delay(1000);
-        SDL_FillRect(screen, nullptr, SDL_MapRGB(screen->format, 0, 0, 0));
+        SDL_FillRect(screen, nullptr, Black());
     }
 
     bool isDone = false;

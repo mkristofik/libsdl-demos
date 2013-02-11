@@ -33,4 +33,7 @@ void sdlBlit(const SdlSurface &surf, Sint16 px, Sint16 py);
 // Load an image from disk.  Returns a null surface on failure.
 SdlSurface sdlLoadImage(const char *filename);
 
+// Common colors in screen pixel format.
+Uint32 Black();
+
 #endif

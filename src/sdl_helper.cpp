@@ -46,3 +46,9 @@ SdlSurface sdlLoadImage(const char *filename)
 
     return surf;
 }
+
+Uint32 Black()
+{
+    assert(screen != nullptr);
+    return SDL_MapRGB(screen->format, 0, 0, 0);
+}
