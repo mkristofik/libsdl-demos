@@ -21,10 +21,11 @@
 #include <utility>
 #include <vector>
 
-const Sint16 sint16_min = std::numeric_limits<Sint16>::min();
+const Sint16 Sint16_min = std::numeric_limits<Sint16>::min();
+const Sint16 Sint16_max = std::numeric_limits<Sint16>::max();
 
 using Point = std::pair<Sint16, Sint16>;
-const Point hInvalid = {sint16_min, sint16_min};
+const Point hInvalid = {Sint16_min, Sint16_min};
 const Sint16 pHexSize = 72;
 
 bool operator==(const Point &lhs, const Point &rhs);

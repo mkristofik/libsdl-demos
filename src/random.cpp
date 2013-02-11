@@ -55,7 +55,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     }
     SDL_WM_SetCaption("Random Map Test", "");
 
-    RandomMap m(16, 9, {0, 0, winWidth, winHeight});
+    RandomMap m(18, 11, {0, 0, winWidth, winHeight});
 
     // TODO: unit tests for this would require an SDL main
     assert(str(m.getHexAt(-1, -1)) == str(hInvalid));
@@ -64,8 +64,12 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     assert(str(m.getHexAt(36, 108)) == str({0, 1}));
     assert(str(m.getHexAt(90, 144)) == str({1, 1}));
 
-    m.draw(0, 0);
-    SDL_UpdateRect(screen, 0, 0, 0, 0);
+    for (Sint16 x = 0, y = 0; x <= 108; x += 18, y += 24) {
+        m.draw(x, y);
+        SDL_UpdateRect(screen, 0, 0, 0, 0);
+        SDL_Delay(1000);
+        SDL_FillRect(screen, nullptr, SDL_MapRGB(screen->format, 0, 0, 0));
+    }
 
     bool isDone = false;
     SDL_Event event;

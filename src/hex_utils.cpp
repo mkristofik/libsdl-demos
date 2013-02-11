@@ -11,7 +11,6 @@
     See the COPYING.txt file for more details.
 */
 #include "hex_utils.h"
-#include <limits>
 #include <sstream>
 
 bool operator==(const Point &lhs, const Point &rhs)
@@ -45,7 +44,7 @@ bool invalid(const Point &p)
 Sint16 hexDist(const Point &h1, const Point &h2)
 {
     if (h1 == hInvalid || h2 == hInvalid) {
-        return std::numeric_limits<Sint16>::max();
+        return Sint16_max;
     }
 
     Sint16 dx = abs(h1.first - h2.first);
@@ -108,7 +107,7 @@ int findClosest(const Point &hTarget, const std::vector<Point> &hexes)
 {
     int closest = -1;
     int size = static_cast<int>(hexes.size());
-    Sint16 bestSoFar = std::numeric_limits<Sint16>::max();
+    Sint16 bestSoFar = Sint16_max;
 
     for (int i = 0; i < size; ++i) {
         Sint16 dist = hexDist(hTarget, hexes[i]);

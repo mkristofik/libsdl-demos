@@ -23,6 +23,8 @@
 class RandomMap
 {
 public:
+    // Create a map and define the visible portion on the screen.  Minimum size
+    // is 2x1.
     RandomMap(Sint16 hWidth, Sint16 hHeight, SDL_Rect pDisplayArea);
 
     // Draw the map with the given map coordinates in the upper-left corner.
@@ -31,6 +33,10 @@ public:
     // Return the hex currently drawn at the given screen pixel.
     Point getHexAt(Sint16 spx, Sint16 spy) const;
     Point getHexAt(const Point &sp) const;
+
+    // Return the screen coordinates of the given hex.
+    Point sPixelFromHex(Sint16 hx, Sint16 hy) const;
+    Point sPixelFromHex(const Point &hex) const;
 
 private:
     // Use a Voronoi diagram to generate a random set of regions.
@@ -50,8 +56,11 @@ private:
     int tIndex(const Point &mHex) const;
     int tIndex(Sint16 hx, Sint16 hy) const;
 
-    // Convert screen coordinates to map coordinates.
+    // Convert between screen coordinates and map coordinates.
     Point mPixel(const Point &sp) const;
+    Point mPixel(Sint16 spx, Sint16 spy) const;
+    Point sPixel(const Point &mp) const;
+    Point sPixel(Sint16 mpx, Sint16 mpy) const;
 
     HexGrid mgrid_;
     int numRegions_;
@@ -64,7 +73,11 @@ private:
     HexGrid tgrid_;
     std::vector<int> terrain_;
 
+    // Visible portion of the map.  Max pixel is defined so that the display
+    // area is always filled.
     SDL_Rect pDisplayArea_;
+    Sint16 mMaxX_;
+    Sint16 mMaxY_;
 
     // Current upper-left pixel in map coordinates.
     Sint16 px_;

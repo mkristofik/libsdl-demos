@@ -21,6 +21,7 @@ HexGrid::HexGrid(Sint16 width, Sint16 height)
     height_(height),
     size_(width_ * height_)
 {
+    assert(width_ > 0 && height_ > 0);
 }
 
 Sint16 HexGrid::width() const

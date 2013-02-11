@@ -85,9 +85,19 @@ RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, SDL_Rect pDisplayArea)
     tgrid_(hWidth + 2, hHeight + 2),
     terrain_(tgrid_.size()),
     pDisplayArea_(std::move(pDisplayArea)),
+    mMaxX_(0),
+    mMaxY_(0),
     px_(0),
     py_(0)
 {
+    // Compute the size of the entire map in pixels.  Determine how far we can
+    // move away from (0,0) and still keep the display area filled.
+    assert(hWidth > 1);
+    Sint16 pWidth = pHexSize * 3 / 4 * hWidth + pHexSize / 4;
+    Sint16 pHeight = pHexSize * hHeight + pHexSize / 2;
+    mMaxX_ = pWidth - pDisplayArea_.w;
+    mMaxY_ = pHeight - pDisplayArea_.h;
+
     generateRegions();
     buildRegionGraph();
     assignTerrain();
@@ -95,7 +105,7 @@ RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, SDL_Rect pDisplayArea)
 
 void RandomMap::draw(Sint16 mpx, Sint16 mpy)
 {
-    // TODO: verify we won't draw past the map boundary.
+    assert(mpx <= mMaxX_ && mpy <= mMaxY_);
     px_ = mpx;
     py_ = mpy;
 
@@ -104,11 +114,19 @@ void RandomMap::draw(Sint16 mpx, Sint16 mpy)
     assert(nwHex != hInvalid);
     assert(seHex != hInvalid);
 
-    // If rightmost visible hex is in an odd column, then we know it's shifted
-    // down by a half hex when drawn.  To make sure we overdraw enough to cover
-    // the bottom of the screen, draw one more row.
+    // Overdraw enough to cover the edges of the screen.  Stay within the
+    // terrain grid.
+    if (nwHex.first % 2 == 0) {
+        --nwHex.second;
+    }
+    else {
+        nwHex.first = std::max(nwHex.first - 1, -1);
+    }
     if (seHex.first % 2 != 0) {
-        ++seHex.second;
+        seHex.second = std::min<Sint16>(seHex.second + 1, mgrid_.height());
+    }
+    else {
+        seHex.first = std::min<Sint16>(seHex.first + 1, mgrid_.width());
     }
 
     // FIXME: RAII this, kinda like ScopeGuard11.  I expect it to be common.
@@ -183,6 +201,18 @@ Point RandomMap::getHexAt(const Point &sp) const
     }
 
     return {hx, hy};
+}
+
+Point RandomMap::sPixelFromHex(Sint16 hx, Sint16 hy) const
+{
+    Sint16 mpx = hx * pHexSize * 0.75;
+    Sint16 mpy = (hy + 0.5 * abs(hx % 2)) * pHexSize;
+    return sPixel(mpx, mpy);
+}
+
+Point RandomMap::sPixelFromHex(const Point &hex) const
+{
+    return sPixelFromHex(hex.first, hex.second);
 }
 
 void RandomMap::generateRegions()
@@ -304,10 +334,11 @@ void RandomMap::assignTerrain()
 
 void RandomMap::drawTile(Sint16 hx, Sint16 hy)
 {
-    Sint16 px = hx * pHexSize * 0.75;
-    Sint16 py = (hy + 0.5 * abs(hx % 2)) * pHexSize;
+    Sint16 spx = 0;
+    Sint16 spy = 0;
+    std::tie(spx, spy) = sPixelFromHex(hx, hy);
     auto terrainType = terrain_[tIndex(hx, hy)];
-    sdlBlit(tiles[terrainType], px, py);
+    sdlBlit(tiles[terrainType], spx, spy);
 
     // Draw edge transitions for each neighboring tile.
     for (auto dir : Dir()) {
@@ -317,7 +348,7 @@ void RandomMap::drawTile(Sint16 hx, Sint16 hy)
         auto edgeType = getEdge(terrainType, terrain_[neighborIndex]);
         if (edgeType >= 0) {
             int e = edgeType * 6 + int(dir);
-            sdlBlit(edges[e], px, py);
+            sdlBlit(edges[e], spx, spy);
         }
     }
 }
@@ -345,7 +376,24 @@ int RandomMap::tIndex(Sint16 hx, Sint16 hy) const
 
 Point RandomMap::mPixel(const Point &sp) const
 {
-    Sint16 mpx = px_ + sp.first - pDisplayArea_.x;
-    Sint16 mpy = py_ + sp.second - pDisplayArea_.y;
+    return mPixel(sp.first, sp.second);
+}
+
+Point RandomMap::mPixel(Sint16 spx, Sint16 spy) const
+{
+    Sint16 mpx = px_ + spx - pDisplayArea_.x;
+    Sint16 mpy = py_ + spy - pDisplayArea_.y;
     return {mpx, mpy};
+}
+
+Point RandomMap::sPixel(const Point &mp) const
+{
+    return sPixel(mp.first, mp.second);
+}
+
+Point RandomMap::sPixel(Sint16 mpx, Sint16 mpy) const
+{
+    Sint16 spx = mpx - px_ + pDisplayArea_.x;
+    Sint16 spy = mpy - py_ + pDisplayArea_.y;
+    return {spx, spy};
 }
