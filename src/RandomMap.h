@@ -27,16 +27,28 @@ public:
     // is 2x1.
     RandomMap(Sint16 hWidth, Sint16 hHeight, SDL_Rect pDisplayArea);
 
+    // Size of the entire map in pixels.
+    Sint16 pWidth() const;
+    Sint16 pHeight() const;
+
     // Draw the map with the given map coordinates in the upper-left corner.
+    // We can draw anywhere between (0,0) and maxPixel() and still keep the
+    // display area filled.
+    Point maxPixel() const;
     void draw(Sint16 mpx, Sint16 mpy);
 
-    // Return the hex currently drawn at the given screen pixel.
-    Point getHexAt(Sint16 spx, Sint16 spy) const;
-    Point getHexAt(const Point &sp) const;
+    // Return the hex currently drawn at the given pixel.
+    Point getHexAtS(Sint16 spx, Sint16 spy) const;
+    Point getHexAtS(const Point &sp) const;
+    Point getHexAtM(Sint16 mpx, Sint16 mpy) const;
+    Point getHexAtM(const Point &mp) const;
 
     // Return the screen coordinates of the given hex.
     Point sPixelFromHex(Sint16 hx, Sint16 hy) const;
     Point sPixelFromHex(const Point &hex) const;
+
+    // Get the terrain type at the given map coordinates.
+    int getTerrainAt(Sint16 mpx, Sint16 mpy) const;
 
 private:
     // Use a Voronoi diagram to generate a random set of regions.
@@ -63,6 +75,8 @@ private:
     Point sPixel(Sint16 mpx, Sint16 mpy) const;
 
     HexGrid mgrid_;
+    Sint16 pWidth_;
+    Sint16 pHeight_;
     int numRegions_;
     std::vector<int> regions_;  // assign each tile to a region [0,numRegions)
     std::vector<Point> centers_;  // center hex of each region

@@ -46,23 +46,22 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
         std::cerr << "Warning: error loading icon file: " << IMG_GetError();
     }
 
-    Uint16 winWidth = 882;
-    Uint16 winHeight = 684;
-    screen = SDL_SetVideoMode(winWidth, winHeight, 0, SDL_SWSURFACE);
+    screen = SDL_SetVideoMode(1092, 684, 0, SDL_SWSURFACE);
     if (screen == nullptr) {
         std::cerr << "Error setting video mode: " << SDL_GetError();
         return EXIT_FAILURE;    
     }
     SDL_WM_SetCaption("Random Map Test", "");
 
-    RandomMap m(18, 11, {0, 0, winWidth, winHeight});
+    // Display area sized to hold 16x9 hexes.
+    RandomMap m(18, 11, {0, 0, 882, 684});
 
     // TODO: unit tests for this would require an SDL main
-    assert(str(m.getHexAt(-1, -1)) == str(hInvalid));
-    assert(str(m.getHexAt(0, 0)) == str({-1, -1}));
-    assert(str(m.getHexAt(36, 36)) == str({0, 0}));
-    assert(str(m.getHexAt(36, 108)) == str({0, 1}));
-    assert(str(m.getHexAt(90, 144)) == str({1, 1}));
+    assert(str(m.getHexAtS(-1, -1)) == str(hInvalid));
+    assert(str(m.getHexAtS(0, 0)) == str({-1, -1}));
+    assert(str(m.getHexAtS(36, 36)) == str({0, 0}));
+    assert(str(m.getHexAtS(36, 108)) == str({0, 1}));
+    assert(str(m.getHexAtS(90, 144)) == str({1, 1}));
 
     for (Sint16 x = 0, y = 0; x <= 108; x += 18, y += 24) {
         m.draw(x, y);

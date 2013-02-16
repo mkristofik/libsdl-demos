@@ -78,6 +78,8 @@ namespace {
 
 RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, SDL_Rect pDisplayArea)
     : mgrid_(hWidth, hHeight),
+    pWidth_(pHexSize * 3 / 4 * hWidth + pHexSize / 4),
+    pHeight_(pHexSize * hHeight + pHexSize / 2),
     numRegions_(18),
     regions_(mgrid_.size(), -1),
     centers_(),
@@ -85,32 +87,41 @@ RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, SDL_Rect pDisplayArea)
     tgrid_(hWidth + 2, hHeight + 2),
     terrain_(tgrid_.size()),
     pDisplayArea_(std::move(pDisplayArea)),
-    mMaxX_(0),
-    mMaxY_(0),
+    mMaxX_(pWidth_ - pDisplayArea_.w),
+    mMaxY_(pHeight_ - pDisplayArea_.h),
     px_(0),
     py_(0)
 {
-    // Compute the size of the entire map in pixels.  Determine how far we can
-    // move away from (0,0) and still keep the display area filled.
     assert(hWidth > 1);
-    Sint16 pWidth = pHexSize * 3 / 4 * hWidth + pHexSize / 4;
-    Sint16 pHeight = pHexSize * hHeight + pHexSize / 2;
-    mMaxX_ = pWidth - pDisplayArea_.w;
-    mMaxY_ = pHeight - pDisplayArea_.h;
 
     generateRegions();
     buildRegionGraph();
     assignTerrain();
 }
 
+Sint16 RandomMap::pWidth() const
+{
+    return pWidth_;
+}
+
+Sint16 RandomMap::pHeight() const
+{
+    return pHeight_;
+}
+
+Point RandomMap::maxPixel() const
+{
+    return {mMaxX_, mMaxY_};
+}
+
 void RandomMap::draw(Sint16 mpx, Sint16 mpy)
 {
-    assert(mpx <= mMaxX_ && mpy <= mMaxY_);
+    assert(mpx >= 0 && mpx <= mMaxX_ && mpy >= 0 && mpy <= mMaxY_);
     px_ = mpx;
     py_ = mpy;
 
-    auto nwHex = getHexAt(rectCorner(pDisplayArea_, Dir::NW));
-    auto seHex = getHexAt(rectCorner(pDisplayArea_, Dir::SE));
+    auto nwHex = getHexAtS(rectCorner(pDisplayArea_, Dir::NW));
+    auto seHex = getHexAtS(rectCorner(pDisplayArea_, Dir::SE));
     assert(nwHex != hInvalid);
     assert(seHex != hInvalid);
 
@@ -143,17 +154,24 @@ void RandomMap::draw(Sint16 mpx, Sint16 mpy)
     SDL_SetClipRect(screen, &temp);
 }
 
-// source: Battle for Wesnoth, pixel_position_to_hex() in display.cpp.
-Point RandomMap::getHexAt(Sint16 spx, Sint16 spy) const
+Point RandomMap::getHexAtS(Sint16 spx, Sint16 spy) const
 {
-    return getHexAt({spx, spy});
+    return getHexAtS({spx, spy});
 }
 
-Point RandomMap::getHexAt(const Point &sp) const
+Point RandomMap::getHexAtS(const Point &sp) const
 {
     if (!insideRect(sp, pDisplayArea_)) {
         return hInvalid;
     }
+
+    return getHexAtM(mPixel(sp));
+}
+
+// source: Battle for Wesnoth, pixel_position_to_hex() in display.cpp.
+Point RandomMap::getHexAtM(Sint16 mpx, Sint16 mpy) const
+{
+    assert(mpx >= 0 && mpx < pWidth_ && mpy >= 0 && mpy < pHeight_);
 
     // tilingWidth
     // |   |
@@ -163,11 +181,6 @@ Point RandomMap::getHexAt(const Point &sp) const
     //   \_/
     const Sint16 tilingWidth = pHexSize * 3 / 2;
     const Sint16 tilingHeight = pHexSize;
-
-    // Convert screen coordinates to map pixel coordinates.
-    Sint16 mpx = 0;
-    Sint16 mpy = 0;
-    std::tie(mpx, mpy) = mPixel(sp);
 
     // I'm not going to pretend to know why the rest of this works.
     Sint16 hx = mpx / tilingWidth * 2;
@@ -203,6 +216,11 @@ Point RandomMap::getHexAt(const Point &sp) const
     return {hx, hy};
 }
 
+Point RandomMap::getHexAtM(const Point &mp) const
+{
+    return getHexAtM(mp.first, mp.second);
+}
+
 Point RandomMap::sPixelFromHex(Sint16 hx, Sint16 hy) const
 {
     Sint16 mpx = hx * pHexSize * 0.75;
@@ -213,6 +231,12 @@ Point RandomMap::sPixelFromHex(Sint16 hx, Sint16 hy) const
 Point RandomMap::sPixelFromHex(const Point &hex) const
 {
     return sPixelFromHex(hex.first, hex.second);
+}
+
+int RandomMap::getTerrainAt(Sint16 mpx, Sint16 mpy) const
+{
+    Point mHex = getHexAtM(mpx, mpy);
+    return terrain_[tIndex(mHex)];
 }
 
 void RandomMap::generateRegions()
