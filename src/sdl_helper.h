@@ -26,6 +26,10 @@ extern SDL_Surface *screen;
 // Like std::make_shared, but with SDL_Surface.
 SdlSurface make_surface(SDL_Surface *surf);
 
+// Create a new surface of the given width and height.  Return a null surface
+// on failure.
+SdlSurface sdlCreateSurface(Sint16 width, Sint16 height);
+
 // Draw the full surface to the screen using (px,py) as the upper-left corner.
 // Use the raw SDL_BlitSurface if you need something more specific.
 void sdlBlit(const SdlSurface &surf, Sint16 px, Sint16 py);
@@ -35,5 +39,7 @@ SdlSurface sdlLoadImage(const char *filename);
 
 // Common colors in screen pixel format.
 Uint32 Black();
+Uint32 Blue();
+Uint32 Green();
 
 #endif

@@ -21,6 +21,35 @@ SdlSurface make_surface(SDL_Surface *surf)
     return SdlSurface(surf, SDL_FreeSurface);
 }
 
+// source: SDL_CreateRGBSurface documentation.
+SdlSurface sdlCreateSurface(Sint16 width, Sint16 height)
+{
+    assert(screen);  // this can only be called after SDL_SetVideoMode()
+    SDL_Surface *surf;
+    Uint32 rmask, gmask, bmask, amask;
+
+    // SDL interprets each pixel as a 32-bit number, so our masks must depend
+    // on the endianness (byte order) of the machine.
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+    rmask = 0xff000000;
+    gmask = 0x00ff0000;
+    bmask = 0x0000ff00;
+    amask = 0x000000ff;
+#else
+    rmask = 0x000000ff;
+    gmask = 0x0000ff00;
+    bmask = 0x00ff0000;
+    amask = 0xff000000;
+#endif
+
+    surf = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32,
+                                rmask, gmask, bmask, amask);
+    if (surf == nullptr) {
+        std::cerr << "Error creating new surface: " << SDL_GetError() << '\n';
+    }
+    return make_surface(surf);
+}
+
 void sdlBlit(const SdlSurface &surf, Sint16 px, Sint16 py)
 {
     assert(screen != nullptr);
@@ -51,4 +80,16 @@ Uint32 Black()
 {
     assert(screen != nullptr);
     return SDL_MapRGB(screen->format, 0, 0, 0);
+}
+
+Uint32 Blue()
+{
+    assert(screen != nullptr);
+    return SDL_MapRGB(screen->format, 0, 0, 255);
+}
+
+Uint32 Green()
+{
+    assert(screen != nullptr);
+    return SDL_MapRGB(screen->format, 0, 255, 0);
 }

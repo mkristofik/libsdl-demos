@@ -11,6 +11,7 @@
     See the COPYING.txt file for more details.
 */
 #include "HexGrid.h"
+#include "Minimap.h"
 #include "RandomMap.h"
 #include "hex_utils.h"
 #include "sdl_helper.h"
@@ -54,7 +55,10 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     SDL_WM_SetCaption("Random Map Test", "");
 
     // Display area sized to hold 16x9 hexes.
-    RandomMap m(18, 11, {0, 0, 882, 684});
+    SDL_Rect mapArea = {0, 0, 882, 684};
+    RandomMap m(18, 11, mapArea);
+    Minimap mini(200, m);
+    mini.draw(892, 0);
 
     // TODO: unit tests for this would require an SDL main
     assert(str(m.getHexAtS(-1, -1)) == str(hInvalid));
@@ -65,9 +69,11 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
 
     for (Sint16 x = 0, y = 0; x <= 108; x += 18, y += 24) {
         m.draw(x, y);
+        mini.draw(892, 0);
         SDL_UpdateRect(screen, 0, 0, 0, 0);
         SDL_Delay(1000);
-        SDL_FillRect(screen, nullptr, Black());
+        SDL_Rect areaToFill = mapArea;  // might get modified by SDL_FillRect
+        SDL_FillRect(screen, &areaToFill, Black());
     }
 
     bool isDone = false;
