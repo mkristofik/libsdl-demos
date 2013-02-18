@@ -70,9 +70,10 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     assert(str(m.getHexAtS(90, 144)) == str({1, 1}));
     */
 
+    Uint32 black = SDL_MapRGB(screen->format, 0, 0, 0);
     for (Sint16 x = 0, y = 0; x <= 108; x += 18, y += 24) {
         SDL_Rect areaToFill = mapArea;  // might get modified by SDL_FillRect
-        SDL_FillRect(screen, &areaToFill, Black());
+        SDL_FillRect(screen, &areaToFill, black);
         m.draw(x, y);
         SDL_UpdateRect(screen, 0, 0, 0, 0);
         SDL_Delay(1000);

@@ -50,6 +50,16 @@ SdlSurface sdlCreateSurface(Sint16 width, Sint16 height)
     return make_surface(surf);
 }
 
+SdlSurface sdlDisplayFormat(const SdlSurface &src)
+{
+    auto surf = make_surface(SDL_DisplayFormatAlpha(src.get()));
+    if (!surf) {
+        std::cerr << "Error converting to display format: " << SDL_GetError()
+                  << '\n';
+    }
+    return surf;
+}
+
 void sdlBlit(const SdlSurface &surf, Sint16 px, Sint16 py)
 {
     assert(screen != nullptr);
@@ -61,35 +71,11 @@ void sdlBlit(const SdlSurface &surf, Sint16 px, Sint16 py)
 
 SdlSurface sdlLoadImage(const char *filename)
 {
-    auto temp = make_surface(IMG_Load(filename));
-    if (!temp) {
+    auto img = make_surface(IMG_Load(filename));
+    if (!img) {
         std::cerr << "Error loading image " << filename
             << "\n    " << IMG_GetError() << '\n';
-        return temp;
+        return img;
     }
-    auto surf = make_surface(SDL_DisplayFormatAlpha(temp.get()));
-    if (!surf) {
-        std::cerr << "Error converting to display format: "
-            << "\n    " << IMG_GetError() << '\n';
-    }
-
-    return surf;
-}
-
-Uint32 Black()
-{
-    assert(screen != nullptr);
-    return SDL_MapRGB(screen->format, 0, 0, 0);
-}
-
-Uint32 Blue()
-{
-    assert(screen != nullptr);
-    return SDL_MapRGB(screen->format, 0, 0, 255);
-}
-
-Uint32 Green()
-{
-    assert(screen != nullptr);
-    return SDL_MapRGB(screen->format, 0, 255, 0);
+    return sdlDisplayFormat(img);
 }

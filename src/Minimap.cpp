@@ -89,11 +89,8 @@ void Minimap::draw(Sint16 sx, Sint16 sy)
     if (SDL_MUSTLOCK(surf.get())) {
         SDL_UnlockSurface(surf.get());
     }
-    auto surf2 = make_surface(SDL_DisplayFormatAlpha(surf.get()));
-    if (!surf2) {
-        std::cerr << "Error converting to display format: "
-            << "\n    " << SDL_GetError() << '\n';
-        return;
+    auto surf2 = sdlDisplayFormat(surf);
+    if (surf2) {
+        sdlBlit(surf2, sx, sy);
     }
-    sdlBlit(surf2, sx, sy);
 }

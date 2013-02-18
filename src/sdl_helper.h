@@ -30,16 +30,15 @@ SdlSurface make_surface(SDL_Surface *surf);
 // on failure.
 SdlSurface sdlCreateSurface(Sint16 width, Sint16 height);
 
+// Convert the given surface to the screen format.  Return a null surface on
+// failure.
+SdlSurface sdlDisplayFormat(const SdlSurface &src);
+
 // Draw the full surface to the screen using (px,py) as the upper-left corner.
 // Use the raw SDL_BlitSurface if you need something more specific.
 void sdlBlit(const SdlSurface &surf, Sint16 px, Sint16 py);
 
 // Load an image from disk.  Returns a null surface on failure.
 SdlSurface sdlLoadImage(const char *filename);
-
-// Common colors in screen pixel format.
-Uint32 Black();
-Uint32 Blue();
-Uint32 Green();
 
 #endif
