@@ -47,7 +47,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
         std::cerr << "Warning: error loading icon file: " << IMG_GetError();
     }
 
-    screen = SDL_SetVideoMode(1092, 684, 0, SDL_SWSURFACE);
+    screen = SDL_SetVideoMode(1112, 704, 0, SDL_SWSURFACE);
     if (screen == nullptr) {
         std::cerr << "Error setting video mode: " << SDL_GetError();
         return EXIT_FAILURE;    
@@ -55,25 +55,27 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     SDL_WM_SetCaption("Random Map Test", "");
 
     // Display area sized to hold 16x9 hexes.
-    SDL_Rect mapArea = {0, 0, 882, 684};
+    SDL_Rect mapArea = {10, 10, 882, 684};
     RandomMap m(18, 11, mapArea);
     Minimap mini(200, m);
-    mini.draw(892, 0);
+    mini.draw(902, 10);
 
-    // TODO: unit tests for this would require an SDL main
+    // FIXME: unit tests for this would require an SDL main.  These assume the
+    // map is drawn in the upper left corner of the screen.
+    /*
     assert(str(m.getHexAtS(-1, -1)) == str(hInvalid));
     assert(str(m.getHexAtS(0, 0)) == str({-1, -1}));
     assert(str(m.getHexAtS(36, 36)) == str({0, 0}));
     assert(str(m.getHexAtS(36, 108)) == str({0, 1}));
     assert(str(m.getHexAtS(90, 144)) == str({1, 1}));
+    */
 
     for (Sint16 x = 0, y = 0; x <= 108; x += 18, y += 24) {
-        m.draw(x, y);
-        mini.draw(892, 0);
-        SDL_UpdateRect(screen, 0, 0, 0, 0);
-        SDL_Delay(1000);
         SDL_Rect areaToFill = mapArea;  // might get modified by SDL_FillRect
         SDL_FillRect(screen, &areaToFill, Black());
+        m.draw(x, y);
+        SDL_UpdateRect(screen, 0, 0, 0, 0);
+        SDL_Delay(1000);
     }
 
     bool isDone = false;
@@ -84,6 +86,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
                 isDone = true;
             }
         }
+        SDL_UpdateRect(screen, 0, 0, 0, 0);
         SDL_Delay(1);
     }
 

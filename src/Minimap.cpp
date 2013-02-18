@@ -15,6 +15,7 @@
 #include "RandomMap.h"
 #include "sdl_helper.h"
 #include "terrain.h"
+#include <cassert>
 #include <iostream>
 
 Minimap::Minimap(Sint16 width, const RandomMap &map)
@@ -38,23 +39,27 @@ Sint16 Minimap::height() const
 void Minimap::draw(Sint16 sx, Sint16 sy)
 {
     auto surf = sdlCreateSurface(width_, height_);
-    Uint32 green = SDL_MapRGB(surf->format, 0, 255, 0);
-    Uint32 blue = SDL_MapRGB(surf->format, 0, 0, 255);
-    Uint32 black = SDL_MapRGB(surf->format, 0, 0, 0);
+    Uint32 terrainColors[] = {SDL_MapRGB(surf->format, 16, 96, 16),  // grass
+                              SDL_MapRGB(surf->format, 112, 112, 64),  // dirt
+                              SDL_MapRGB(surf->format, 208, 192, 128),  // sand
+                              SDL_MapRGB(surf->format, 0, 64, 144),  // water
+                              SDL_MapRGB(surf->format, 48, 48, 48),  // swamp
+                              SDL_MapRGB(surf->format, 240, 240, 240)};  // snow
 
+    // TODO: RAII this and the unlock.
     if (SDL_MUSTLOCK(surf.get())) {
         if (SDL_LockSurface(surf.get()) < 0) {
             std::cerr << "Error locking surface: " << SDL_GetError() << '\n';
             return;
         }
     }
-    /*
-    For each pixel of minimap,
-        Get corresponding set of pixels on the main map (use scale factor)
-        Find most common terrain type in that set
-        Draw that color for the pixel
-    */
-    // Note: this will have to be fixed if BitsPerPixel is ever not 32.
+
+    // For each pixel of minimap,
+    //     Get corresponding set of pixels on the main map
+    //     Find most common terrain type in that set
+    //     Draw that color for the pixel
+    //
+    // note: this will have to be fixed if BitsPerPixel is ever not 32.
     Sint16 blockSize = scale_;
     for (Sint16 x = 0; x < width_; ++x) {
         for (Sint16 y = 0; y < height_; ++y) {
@@ -76,17 +81,9 @@ void Minimap::draw(Sint16 sx, Sint16 sy)
                     }
                 }
             }
+            assert(mostCommon >= 0 && mostCommon < NUM_TERRAINS);
             Uint32 *pixel = static_cast<Uint32 *>(surf->pixels) + y * width_ + x;
-            std::cout << pixel << '\n';
-            if (mostCommon == GRASS) {
-                *pixel = green;
-            }
-            else if (mostCommon == WATER) {
-                *pixel = blue;
-            }
-            else {
-                *pixel = black;
-            }
+            *pixel = terrainColors[mostCommon];
         }
     }
     if (SDL_MUSTLOCK(surf.get())) {
@@ -95,7 +92,8 @@ void Minimap::draw(Sint16 sx, Sint16 sy)
     auto surf2 = make_surface(SDL_DisplayFormatAlpha(surf.get()));
     if (!surf2) {
         std::cerr << "Error converting to display format: "
-            << "\n    " << IMG_GetError() << '\n';
+            << "\n    " << SDL_GetError() << '\n';
+        return;
     }
     sdlBlit(surf2, sx, sy);
 }
