@@ -13,7 +13,7 @@
 #ifndef MINIMAP_H
 #define MINIMAP_H
 
-#include "SDL_stdinc.h"
+#include "sdl_helper.h"
 class RandomMap;
 
 class Minimap
@@ -27,10 +27,13 @@ public:
     void draw(Sint16 x, Sint16 y);
 
 private:
+    void generate();
+
     const RandomMap &map_;
     double scale_;
     Sint16 width_;
     Sint16 height_;
+    SdlSurface surface_;
 };
 
 #endif

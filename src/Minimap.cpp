@@ -13,7 +13,6 @@
 #include "Minimap.h"
 
 #include "RandomMap.h"
-#include "sdl_helper.h"
 #include "terrain.h"
 #include <cassert>
 #include <iostream>
@@ -22,7 +21,8 @@ Minimap::Minimap(Sint16 width, const RandomMap &map)
     : map_(map),
     scale_(map.pWidth() / static_cast<double>(width)),
     width_(width),
-    height_(map.pHeight() / scale_)
+    height_(map.pHeight() / scale_),
+    surface_()
 {
 }
 
@@ -38,6 +38,18 @@ Sint16 Minimap::height() const
 
 void Minimap::draw(Sint16 sx, Sint16 sy)
 {
+    if (!surface_) {
+        generate();
+    }
+    if (surface_) {
+        SDL_Rect r = {sx, sy, Uint16(width_), Uint16(height_)};
+        sdlClear(r);
+        sdlBlit(surface_, sx, sy);
+    }
+}
+
+void Minimap::generate()
+{
     auto surf = sdlCreateSurface(width_, height_);
     Uint32 terrainColors[] = {SDL_MapRGB(surf->format, 16, 96, 16),  // grass
                               SDL_MapRGB(surf->format, 112, 112, 64),  // dirt
@@ -46,7 +58,8 @@ void Minimap::draw(Sint16 sx, Sint16 sy)
                               SDL_MapRGB(surf->format, 48, 48, 48),  // swamp
                               SDL_MapRGB(surf->format, 240, 240, 240)};  // snow
 
-    // TODO: RAII this and the unlock.
+    // TODO: RAII this and the unlock.  We don't want to try to draw anything
+    // if the lock fails.
     if (SDL_MUSTLOCK(surf.get())) {
         if (SDL_LockSurface(surf.get()) < 0) {
             std::cerr << "Error locking surface: " << SDL_GetError() << '\n';
@@ -89,8 +102,6 @@ void Minimap::draw(Sint16 sx, Sint16 sy)
     if (SDL_MUSTLOCK(surf.get())) {
         SDL_UnlockSurface(surf.get());
     }
-    auto surf2 = sdlDisplayFormat(surf);
-    if (surf2) {
-        sdlBlit(surf2, sx, sy);
-    }
+
+    surface_ = sdlDisplayFormat(surf);
 }
