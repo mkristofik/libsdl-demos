@@ -13,8 +13,36 @@
 #include "sdl_helper.h"
 #include <cassert>
 #include <iostream>
+#include <vector>
 
 SDL_Surface *screen = nullptr;
+
+namespace
+{
+    using DashSize = std::pair<Sint16, Uint16>;  // line-relative pos, width
+
+    std::vector<DashSize> dashedLine(Uint16 lineLen)
+    {
+        const Uint16 spaceSize = 6;
+        const Uint16 dashSize = spaceSize * 3 / 2;
+
+        // start and end with a dash
+        int numDashes = (lineLen + spaceSize) / (spaceSize + dashSize);
+
+        std::vector<DashSize> dashes;
+        Sint16 pos = 0;
+        int num = 0;
+        while (num < numDashes - 1) {
+            dashes.emplace_back(pos, dashSize);
+            pos += dashSize + spaceSize;
+            ++num;
+        }
+
+        // Make sure the last dash fills the line.
+        dashes.emplace_back(pos, lineLen - pos);
+        return dashes;
+    }
+}
 
 SdlSurface make_surface(SDL_Surface *surf)
 {
@@ -24,7 +52,9 @@ SdlSurface make_surface(SDL_Surface *surf)
 // source: SDL_CreateRGBSurface documentation.
 SdlSurface sdlCreateSurface(Sint16 width, Sint16 height)
 {
-    assert(screen);  // this can only be called after SDL_SetVideoMode()
+    // This can only be called after SDL_SetVideoMode()
+    assert(screen != nullptr);
+
     SDL_Surface *surf;
     Uint32 rmask, gmask, bmask, amask;
 
@@ -55,7 +85,7 @@ SdlSurface sdlDisplayFormat(const SdlSurface &src)
     auto surf = make_surface(SDL_DisplayFormatAlpha(src.get()));
     if (!surf) {
         std::cerr << "Error converting to display format: " << SDL_GetError()
-                  << '\n';
+            << '\n';
     }
     return surf;
 }
@@ -65,7 +95,17 @@ void sdlBlit(const SdlSurface &surf, Sint16 px, Sint16 py)
     assert(screen != nullptr);
     SDL_Rect dest = {px, py, 0, 0};
     if (SDL_BlitSurface(surf.get(), nullptr, screen, &dest) < 0) {
-        std::cerr << "Warning: error drawing to screen: " << SDL_GetError();
+        std::cerr << "Warning: error drawing to screen: " << SDL_GetError()
+            << '\n';
+    }
+}
+
+void sdlClear(SDL_Rect region)
+{
+    assert(screen != nullptr);
+    auto black = SDL_MapRGB(screen->format, 0, 0, 0);
+    if (SDL_FillRect(screen, &region, black) < 0) {
+        std::cerr << "Error clearing screen region: " << SDL_GetError() << '\n';
     }
 }
 
@@ -79,3 +119,34 @@ SdlSurface sdlLoadImage(const char *filename)
     }
     return sdlDisplayFormat(img);
 }
+
+void sdlDashedLineH(Sint16 px, Sint16 py, Uint16 len, Uint32 color)
+{
+    assert(screen != nullptr);
+    const Uint16 lineWidth = 1;
+    for (const auto &dash : dashedLine(len)) {
+        SDL_Rect r = {Sint16(px + dash.first), py, dash.second, lineWidth};
+        if (SDL_FillRect(screen, &r, color) < 0) {
+            std::cerr << "Error drawing horizontal dashed line: "
+                << SDL_GetError() << '\n';
+            return;
+        }
+        std::cout << 'H' << r.x << ',' << r.y << 'x' << r.w << '\n';
+    }
+}
+
+void sdlDashedLineV(Sint16 px, Sint16 py, Uint16 len, Uint32 color)
+{
+    assert(screen != nullptr);
+    const Uint16 lineWidth = 1;
+    for (const auto &dash : dashedLine(len)) {
+        SDL_Rect r = {px, Sint16(py + dash.first), lineWidth, dash.second};
+        if (SDL_FillRect(screen, &r, color) < 0) {
+            std::cerr << "Error drawing horizontal dashed line: "
+                << SDL_GetError() << '\n';
+            return;
+        }
+        std::cout << 'V' << r.x << ',' << r.y << 'x' << r.h << '\n';
+    }
+}
+

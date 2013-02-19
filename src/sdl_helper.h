@@ -38,7 +38,14 @@ SdlSurface sdlDisplayFormat(const SdlSurface &src);
 // Use the raw SDL_BlitSurface if you need something more specific.
 void sdlBlit(const SdlSurface &surf, Sint16 px, Sint16 py);
 
+// Clear the given region of the screen.
+void sdlClear(SDL_Rect region);
+
 // Load an image from disk.  Returns a null surface on failure.
 SdlSurface sdlLoadImage(const char *filename);
+
+// Draw a dashed line to the screen starting at (px,py).
+void sdlDashedLineH(Sint16 px, Sint16 py, Uint16 len, Uint32 color);
+void sdlDashedLineV(Sint16 px, Sint16 py, Uint16 len, Uint32 color);
 
 #endif

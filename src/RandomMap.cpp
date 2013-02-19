@@ -117,6 +117,7 @@ Point RandomMap::maxPixel() const
 void RandomMap::draw(Sint16 mpx, Sint16 mpy)
 {
     assert(mpx >= 0 && mpx <= mMaxX_ && mpy >= 0 && mpy <= mMaxY_);
+
     px_ = mpx;
     py_ = mpy;
 
@@ -146,6 +147,7 @@ void RandomMap::draw(Sint16 mpx, Sint16 mpy)
     SDL_SetClipRect(screen, &pDisplayArea_);
 
     loadTiles();
+    sdlClear(pDisplayArea_);
     for (Sint16 hx = nwHex.first; hx <= seHex.first; ++hx) {
         for (Sint16 hy = nwHex.second; hy <= seHex.second; ++hy) {
             drawTile(hx, hy);
