@@ -58,7 +58,6 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     SDL_Rect mapArea = {10, 10, 882, 684};
     RandomMap m(18, 11, mapArea);
     Minimap mini(200, m);
-    mini.draw(902, 10);
 
     // FIXME: unit tests for this would require an SDL main.  These assume the
     // map is drawn in the upper left corner of the screen.
@@ -70,11 +69,24 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     assert(str(m.getHexAtS(90, 144)) == str({1, 1}));
     */
 
-    Uint32 black = SDL_MapRGB(screen->format, 0, 0, 0);
+    auto white = SDL_MapRGB(screen->format, 255, 255, 255);
     for (Sint16 x = 0, y = 0; x <= 108; x += 18, y += 24) {
-        SDL_Rect areaToFill = mapArea;  // might get modified by SDL_FillRect
-        SDL_FillRect(screen, &areaToFill, black);
         m.draw(x, y);
+
+        Sint16 sx = 902;
+        Sint16 sy = 10;
+        mini.draw(sx, sy);
+        Sint16 box_nw_x = sx + static_cast<double>(x) / m.pWidth() * mini.width();
+        Sint16 box_nw_y = sy + static_cast<double>(y) / m.pHeight() * mini.height();
+        Sint16 box_se_x = sx + static_cast<double>(x + mapArea.w - 1) / m.pWidth() * mini.width();
+        Sint16 box_se_y = sy + static_cast<double>(y + mapArea.h - 1) / m.pHeight() * mini.height();
+        Uint16 box_width = box_se_x - box_nw_x;
+        Uint16 box_height = box_se_y - box_nw_y;
+        sdlDashedLineH(box_nw_x, box_nw_y, box_width, white);
+        sdlDashedLineV(box_nw_x, box_nw_y, box_height, white);
+        sdlDashedLineH(box_nw_x, box_se_y, box_width, white);
+        sdlDashedLineV(box_se_x, box_nw_y, box_height, white);
+
         SDL_UpdateRect(screen, 0, 0, 0, 0);
         SDL_Delay(1000);
     }
