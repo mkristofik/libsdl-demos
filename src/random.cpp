@@ -73,6 +73,8 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     for (Sint16 x = 0, y = 0; x <= 108; x += 18, y += 24) {
         m.draw(x, y);
 
+        // FIXME: the minimap and bounding box can be turned into
+        // RandomMap::drawMinimap().
         Sint16 sx = 902;
         Sint16 sy = 10;
         mini.draw(sx, sy);

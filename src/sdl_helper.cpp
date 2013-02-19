@@ -20,26 +20,24 @@ SDL_Surface *screen = nullptr;
 namespace
 {
     using DashSize = std::pair<Sint16, Uint16>;  // line-relative pos, width
-
     std::vector<DashSize> dashedLine(Uint16 lineLen)
     {
         const Uint16 spaceSize = 6;
         const Uint16 dashSize = spaceSize * 3 / 2;
 
-        // start and end with a dash
-        int numDashes = (lineLen + spaceSize) / (spaceSize + dashSize);
-
         std::vector<DashSize> dashes;
         Sint16 pos = 0;
-        int num = 0;
-        while (num < numDashes - 1) {
-            dashes.emplace_back(pos, dashSize);
-            pos += dashSize + spaceSize;
-            ++num;
+        while (pos < lineLen) {
+            if (pos + dashSize < lineLen) {
+                dashes.emplace_back(pos, dashSize);
+                pos += dashSize + spaceSize;
+            }
+            else {
+                dashes.emplace_back(pos, lineLen - pos);
+                break;
+            }
         }
 
-        // Make sure the last dash fills the line.
-        dashes.emplace_back(pos, lineLen - pos);
         return dashes;
     }
 }
