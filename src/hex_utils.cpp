@@ -35,11 +35,6 @@ std::string str(const Point &p)
     return strm.str();
 }
 
-bool invalid(const Point &p)
-{
-    return p.first < 0 || p.second < 0;
-}
-
 // source: Battle for Wesnoth, distance_between() in map_location.cpp.
 Sint16 hexDist(const Point &h1, const Point &h2)
 {

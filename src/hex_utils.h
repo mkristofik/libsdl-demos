@@ -43,9 +43,6 @@ std::string str(const Point &p);
 enum class Dir {N, NE, SE, S, SW, NW, _last, _first = N};
 ITERABLE_ENUM_CLASS(Dir);
 
-// Return true if either dimension is negative.
-bool invalid(const Point &p);
-
 // Distance between hexes, 1 step per tile.
 Sint16 hexDist(const Point &h1, const Point &h2);
 

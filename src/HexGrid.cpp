@@ -117,7 +117,8 @@ std::vector<Point> HexGrid::hexNeighbors(const Point &hex) const
 
 bool HexGrid::offGrid(const Point &hex) const
 {
-    return invalid(hex) ||
+    return hex.first < 0 ||
+           hex.second < 0 ||
            hex.first >= width_ ||
            hex.second >= height_;
 }
