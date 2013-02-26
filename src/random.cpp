@@ -57,9 +57,10 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     // Display area sized to hold 16x9 hexes.
     SDL_Rect mapArea = {10, 10, 882, 684};
     RandomMap m(18, 11, mapArea);
-    Minimap mini(200, m);
+    SDL_Rect minimapArea = {902, 10, 200, 167};
+    Minimap mini(m, minimapArea);
 
-    // FIXME: unit tests for this would require an SDL main.  These assume the
+    // TODO: unit tests for this would require an SDL main.  These assume the
     // map is drawn in the upper left corner of the screen.
     /*
     assert(str(m.getHexAtS(-1, -1)) == str(hInvalid));
@@ -69,25 +70,10 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     assert(str(m.getHexAtS(90, 144)) == str({1, 1}));
     */
 
-    auto white = SDL_MapRGB(screen->format, 255, 255, 255);
     for (Sint16 x = 0, y = 0; x <= 108; x += 18, y += 24) {
         m.draw(x, y);
-
-        // FIXME: the minimap and bounding box can be turned into
-        // RandomMap::drawMinimap().
-        Sint16 sx = 902;
-        Sint16 sy = 10;
-        mini.draw(sx, sy);
-        Sint16 box_nw_x = sx + static_cast<double>(x) / m.pWidth() * mini.width();
-        Sint16 box_nw_y = sy + static_cast<double>(y) / m.pHeight() * mini.height();
-        Sint16 box_se_x = sx + static_cast<double>(x + mapArea.w - 1) / m.pWidth() * mini.width();
-        Sint16 box_se_y = sy + static_cast<double>(y + mapArea.h - 1) / m.pHeight() * mini.height();
-        Uint16 box_width = box_se_x - box_nw_x;
-        Uint16 box_height = box_se_y - box_nw_y;
-        sdlDashedLineH(box_nw_x, box_nw_y, box_width, white);
-        sdlDashedLineV(box_nw_x, box_nw_y, box_height, white);
-        sdlDashedLineH(box_nw_x, box_se_y, box_width, white);
-        sdlDashedLineV(box_se_x, box_nw_y, box_height, white);
+        mini.draw();
+        mini.drawBoundingBox();
 
         SDL_UpdateRect(screen, 0, 0, 0, 0);
         SDL_Delay(1000);

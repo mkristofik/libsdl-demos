@@ -76,7 +76,7 @@ namespace {
     }
 }
 
-RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, SDL_Rect pDisplayArea)
+RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, const SDL_Rect &pDisplayArea)
     : mgrid_(hWidth, hHeight),
     pWidth_(pHexSize * 3 / 4 * hWidth + pHexSize / 4),
     pHeight_(pHexSize * hHeight + pHexSize / 2),
@@ -86,7 +86,7 @@ RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, SDL_Rect pDisplayArea)
     regionGraph_(numRegions_),
     tgrid_(hWidth + 2, hHeight + 2),
     terrain_(tgrid_.size()),
-    pDisplayArea_(std::move(pDisplayArea)),
+    pDisplayArea_(pDisplayArea),
     mMaxX_(pWidth_ - pDisplayArea_.w),
     mMaxY_(pHeight_ - pDisplayArea_.h),
     px_(0),
@@ -107,6 +107,11 @@ Sint16 RandomMap::pWidth() const
 Sint16 RandomMap::pHeight() const
 {
     return pHeight_;
+}
+
+const SDL_Rect & RandomMap::getDisplayArea() const
+{
+    return pDisplayArea_;
 }
 
 Point RandomMap::maxPixel() const
@@ -141,7 +146,7 @@ void RandomMap::draw(Sint16 mpx, Sint16 mpy)
         seHex.first = std::min<Sint16>(seHex.first + 1, mgrid_.width());
     }
 
-    // FIXME: RAII this, kinda like ScopeGuard11.  I expect it to be common.
+    // TODO: RAII this, kinda like ScopeGuard11.  I expect it to be common.
     SDL_Rect temp;
     SDL_GetClipRect(screen, &temp);
     SDL_SetClipRect(screen, &pDisplayArea_);
@@ -154,6 +159,11 @@ void RandomMap::draw(Sint16 mpx, Sint16 mpy)
         }
     }
     SDL_SetClipRect(screen, &temp);
+}
+
+Point RandomMap::mDrawnAt() const
+{
+    return {px_, py_};
 }
 
 Point RandomMap::getHexAtS(Sint16 spx, Sint16 spy) const

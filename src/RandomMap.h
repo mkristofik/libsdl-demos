@@ -25,17 +25,23 @@ class RandomMap
 public:
     // Create a map and define the visible portion on the screen.  Minimum size
     // is 2x1.
-    RandomMap(Sint16 hWidth, Sint16 hHeight, SDL_Rect pDisplayArea);
+    RandomMap(Sint16 hWidth, Sint16 hHeight, const SDL_Rect &pDisplayArea);
 
     // Size of the entire map in pixels.
     Sint16 pWidth() const;
     Sint16 pHeight() const;
+
+    // Size of the visible map area only in pixels.
+    const SDL_Rect & getDisplayArea() const;
 
     // Draw the map with the given map coordinates in the upper-left corner.
     // We can draw anywhere between (0,0) and maxPixel() and still keep the
     // display area filled.
     Point maxPixel() const;
     void draw(Sint16 mpx, Sint16 mpy);
+
+    // Return the last draw() target.
+    Point mDrawnAt() const;
 
     // Return the hex currently drawn at the given pixel.
     Point getHexAtS(Sint16 spx, Sint16 spy) const;

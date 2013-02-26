@@ -19,20 +19,23 @@ class RandomMap;
 class Minimap
 {
 public:
-    Minimap(Sint16 width, const RandomMap &map);
+    Minimap(const RandomMap &map, const SDL_Rect &displayArea);
 
-    Sint16 width() const;
-    Sint16 height() const;
+    void draw();
 
-    void draw(Sint16 x, Sint16 y);
+    // Draw a dotted rectangle representing the current visible map area.
+    // Return the screen coordinates of that rectangle.
+    SDL_Rect drawBoundingBox();
 
 private:
     void generate();
 
     const RandomMap &map_;
-    double scale_;
+    SDL_Rect displayArea_;
     Sint16 width_;
     Sint16 height_;
+    double hScale_;
+    double vScale_;
     SdlSurface surface_;
 };
 

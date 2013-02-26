@@ -16,36 +16,56 @@
 #include "terrain.h"
 #include <cassert>
 #include <iostream>
+#include <tuple>
 
-Minimap::Minimap(Sint16 width, const RandomMap &map)
+Minimap::Minimap(const RandomMap &map, const SDL_Rect &displayArea)
     : map_(map),
-    scale_(map.pWidth() / static_cast<double>(width)),
-    width_(width),
-    height_(map.pHeight() / scale_),
+    displayArea_(displayArea),
+    width_(displayArea_.w),
+    height_(displayArea_.h),
+    hScale_(map_.pWidth() / static_cast<double>(width_)),
+    vScale_(map_.pHeight() / static_cast<double>(height_)),
     surface_()
 {
 }
 
-Sint16 Minimap::width() const
-{
-    return width_;
-}
-
-Sint16 Minimap::height() const
-{
-    return height_;
-}
-
-void Minimap::draw(Sint16 sx, Sint16 sy)
+void Minimap::draw()
 {
     if (!surface_) {
         generate();
     }
     if (surface_) {
-        SDL_Rect r = {sx, sy, Uint16(width_), Uint16(height_)};
-        sdlClear(r);
-        sdlBlit(surface_, sx, sy);
+        sdlClear(displayArea_);
+        sdlBlit(surface_, displayArea_.x, displayArea_.y);
     }
+}
+
+SDL_Rect Minimap::drawBoundingBox()
+{
+    Sint16 sx = displayArea_.x;
+    Sint16 sy = displayArea_.y;
+    Sint16 mapX = 0;
+    Sint16 mapY = 0;
+    std::tie(mapX, mapY) = map_.mDrawnAt();
+    const auto &visibleArea = map_.getDisplayArea();
+
+    // Scale the visible area of the map to the size of the minimap.
+    Sint16 box_nw_x = sx + static_cast<double>(mapX) / map_.pWidth() * width_;
+    Sint16 box_nw_y = sy + static_cast<double>(mapY) / map_.pHeight() * height_;
+    Sint16 box_se_x = sx + static_cast<double>(mapX + visibleArea.w - 1) /
+        map_.pWidth() * width_;
+    Sint16 box_se_y = sy + static_cast<double>(mapY + visibleArea.h - 1) /
+        map_.pHeight() * height_;
+    Uint16 box_width = box_se_x - box_nw_x;
+    Uint16 box_height = box_se_y - box_nw_y;
+
+    auto white = SDL_MapRGB(screen->format, 255, 255, 255);
+    sdlDashedLineH(box_nw_x, box_nw_y, box_width, white);
+    sdlDashedLineV(box_nw_x, box_nw_y, box_height, white);
+    sdlDashedLineH(box_nw_x, box_se_y, box_width, white);
+    sdlDashedLineV(box_se_x, box_nw_y, box_height, white);
+
+    return {box_nw_x, box_nw_y, box_width, box_height};
 }
 
 void Minimap::generate()
@@ -73,15 +93,14 @@ void Minimap::generate()
     //     Draw that color for the pixel
     //
     // note: this will have to be fixed if BitsPerPixel is ever not 32.
-    Sint16 blockSize = scale_;
     for (Sint16 x = 0; x < width_; ++x) {
         for (Sint16 y = 0; y < height_; ++y) {
             int mostCommon = GRASS;
             int count = 0;
-            for (Sint16 i = 0; i < blockSize; ++i) {
-                for (Sint16 j = 0; j < blockSize; ++j) {
-                    int terrain = map_.getTerrainAt(x * scale_ + i,
-                                                    y * scale_ + j);
+            for (Sint16 i = 0; i < hScale_; ++i) {
+                for (Sint16 j = 0; j < vScale_; ++j) {
+                    int terrain = map_.getTerrainAt(x * hScale_ + i,
+                                                    y * vScale_ + j);
                     if (terrain == mostCommon) {
                         ++count;
                     }

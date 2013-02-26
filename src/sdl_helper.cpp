@@ -129,7 +129,8 @@ void sdlDashedLineH(Sint16 px, Sint16 py, Uint16 len, Uint32 color)
                 << SDL_GetError() << '\n';
             return;
         }
-        std::cout << 'H' << r.x << ',' << r.y << 'x' << r.w << '\n';
+        // TODO: this could be a unit test.
+        //std::cout << 'H' << r.x << ',' << r.y << 'x' << r.w << '\n';
     }
 }
 
@@ -144,7 +145,8 @@ void sdlDashedLineV(Sint16 px, Sint16 py, Uint16 len, Uint32 color)
                 << SDL_GetError() << '\n';
             return;
         }
-        std::cout << 'V' << r.x << ',' << r.y << 'x' << r.h << '\n';
+        // TODO: this could be a unit test.
+        //std::cout << 'V' << r.x << ',' << r.y << 'x' << r.h << '\n';
     }
 }
 
