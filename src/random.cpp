@@ -83,7 +83,30 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     SDL_Event event;
     while (!isDone) {
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
+            if (event.type == SDL_MOUSEBUTTONDOWN) {
+                if (event.button.button == SDL_BUTTON_LEFT &&
+                    insideRect(event.button.x, event.button.y, minimapArea))
+                {
+                    std::cout << "Left mouse click " << event.button.x << ' ' <<
+                        event.button.y << '\n';
+                    auto pct = rectPct(event.button.x, event.button.y, minimapArea);
+                    std::cout << pct.first << ' ' << pct.second << '\n';
+                }
+            }
+            /*
+            else if (event.type == SDL_MOUSEMOTION) {
+                if (event.motion.state & SDL_BUTTON(1)) {
+                    std::cout << "Left mouse held, moved to " <<
+                        event.motion.x << ' ' << event.motion.y << '\n';
+                }
+            }
+            else if (event.type == SDL_MOUSEBUTTONUP) {
+                if (event.button.button == SDL_BUTTON_LEFT) {
+                    std::cout << "Left mouse released.\n";
+                }
+            }
+            */
+            else if (event.type == SDL_QUIT) {
                 isDone = true;
             }
         }

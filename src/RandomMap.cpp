@@ -173,7 +173,7 @@ Point RandomMap::getHexAtS(Sint16 spx, Sint16 spy) const
 
 Point RandomMap::getHexAtS(const Point &sp) const
 {
-    if (!insideRect(sp, pDisplayArea_)) {
+    if (!insideRect(sp.first, sp.second, pDisplayArea_)) {
         return hInvalid;
     }
 

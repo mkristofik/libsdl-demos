@@ -150,3 +150,16 @@ void sdlDashedLineV(Sint16 px, Sint16 py, Uint16 len, Uint32 color)
     }
 }
 
+bool insideRect(Sint16 x, Sint16 y, const SDL_Rect &rect)
+{
+    return x >= rect.x &&
+           y >= rect.y &&
+           x < rect.x + rect.w &&
+           y < rect.y + rect.h;
+}
+
+std::pair<double, double> rectPct(Sint16 x, Sint16 y, const SDL_Rect &rect)
+{
+    return {(static_cast<double>(x) - rect.x) / (rect.w - 1),
+            (static_cast<double>(y) - rect.y) / (rect.h - 1)};
+}

@@ -53,6 +53,4 @@ Point adjacent(const Point &hSrc, Dir d);
 // Given a list of hexes, return the index of the hex closest to the target.
 int findClosest(const Point &hTarget, const std::vector<Point> &hexes);
 
-bool insideRect(const Point &p, const SDL_Rect &rect);
-
 #endif

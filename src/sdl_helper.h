@@ -16,6 +16,7 @@
 #include "SDL.h"
 #include "SDL_image.h"
 #include <memory>
+#include <utility>
 
 using SdlSurface = std::shared_ptr<SDL_Surface>;
 
@@ -47,5 +48,9 @@ SdlSurface sdlLoadImage(const char *filename);
 // Draw a dashed line to the screen starting at (px,py).
 void sdlDashedLineH(Sint16 px, Sint16 py, Uint16 len, Uint32 color);
 void sdlDashedLineV(Sint16 px, Sint16 py, Uint16 len, Uint32 color);
+
+// Rectangle functions.
+bool insideRect(Sint16 x, Sint16 y, const SDL_Rect &rect);
+std::pair<double, double> rectPct(Sint16 x, Sint16 y, const SDL_Rect &rect);
 
 #endif

@@ -114,11 +114,3 @@ int findClosest(const Point &hTarget, const std::vector<Point> &hexes)
 
     return closest;
 }
-
-bool insideRect(const Point &p, const SDL_Rect &rect)
-{
-    return p.first >= rect.x &&
-           p.second >= rect.y &&
-           p.first < rect.x + rect.w &&
-           p.second < rect.y + rect.h;
-}
