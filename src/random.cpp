@@ -70,10 +70,11 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     assert(str(m.getHexAtS(90, 144)) == str({1, 1}));
     */
 
+    SDL_Rect miniBox;
     for (Sint16 x = 0, y = 0; x <= 108; x += 18, y += 24) {
         m.draw(x, y);
         mini.draw();
-        mini.drawBoundingBox();
+        miniBox = mini.drawBoundingBox();
 
         SDL_UpdateRect(screen, 0, 0, 0, 0);
         SDL_Delay(1000);
@@ -87,19 +88,43 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
                 if (event.button.button == SDL_BUTTON_LEFT &&
                     insideRect(event.button.x, event.button.y, minimapArea))
                 {
-                    std::cout << "Left mouse click " << event.button.x << ' ' <<
-                        event.button.y << '\n';
-                    auto pct = rectPct(event.button.x, event.button.y, minimapArea);
-                    std::cout << pct.first << ' ' << pct.second << '\n';
+                    // Try to place the center of the bounding box at the mouse
+                    // cursor.
+                    Sint16 tgtX = event.button.x - miniBox.w / 2;
+                    Sint16 tgtY = event.button.y - miniBox.h / 2;
+                    auto pct = rectPct(tgtX, tgtY, minimapArea);
+                    Sint16 tgtMapX = pct.first * m.pWidth();
+                    Sint16 tgtMapY = pct.second * m.pHeight();
+                    if (tgtMapX < 0) tgtMapX = 0;
+                    if (tgtMapX > m.maxPixel().first) tgtMapX = m.maxPixel().first;
+                    if (tgtMapY < 0) tgtMapY = 0;
+                    if (tgtMapY > m.maxPixel().second) tgtMapY = m.maxPixel().second;
+                    std::cerr << tgtMapX << ' ' << tgtMapY << '\n';
+                    m.draw(tgtMapX, tgtMapY);
+                    mini.draw();
+                    mini.drawBoundingBox();
+                }
+            }
+            else if (event.type == SDL_MOUSEMOTION) {
+                if (event.motion.state & SDL_BUTTON(1)) {
+                    // Try to place the center of the bounding box at the mouse
+                    // cursor.
+                    Sint16 tgtX = event.button.x - miniBox.w / 2;
+                    Sint16 tgtY = event.button.y - miniBox.h / 2;
+                    auto pct = rectPct(tgtX, tgtY, minimapArea);
+                    Sint16 tgtMapX = pct.first * m.pWidth();
+                    Sint16 tgtMapY = pct.second * m.pHeight();
+                    if (tgtMapX < 0) tgtMapX = 0;
+                    if (tgtMapX > m.maxPixel().first) tgtMapX = m.maxPixel().first;
+                    if (tgtMapY < 0) tgtMapY = 0;
+                    if (tgtMapY > m.maxPixel().second) tgtMapY = m.maxPixel().second;
+                    std::cerr << tgtMapX << ' ' << tgtMapY << '\n';
+                    m.draw(tgtMapX, tgtMapY);
+                    mini.draw();
+                    mini.drawBoundingBox();
                 }
             }
             /*
-            else if (event.type == SDL_MOUSEMOTION) {
-                if (event.motion.state & SDL_BUTTON(1)) {
-                    std::cout << "Left mouse held, moved to " <<
-                        event.motion.x << ' ' << event.motion.y << '\n';
-                }
-            }
             else if (event.type == SDL_MOUSEBUTTONUP) {
                 if (event.button.button == SDL_BUTTON_LEFT) {
                     std::cout << "Left mouse released.\n";

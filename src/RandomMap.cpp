@@ -133,18 +133,10 @@ void RandomMap::draw(Sint16 mpx, Sint16 mpy)
 
     // Overdraw enough to cover the edges of the screen.  Stay within the
     // terrain grid.
-    if (nwHex.first % 2 == 0) {
-        --nwHex.second;
-    }
-    else {
-        nwHex.first = std::max(nwHex.first - 1, -1);
-    }
-    if (seHex.first % 2 != 0) {
-        seHex.second = std::min<Sint16>(seHex.second + 1, mgrid_.height());
-    }
-    else {
-        seHex.first = std::min<Sint16>(seHex.first + 1, mgrid_.width());
-    }
+    nwHex.first = std::max(nwHex.first - 1, -1);
+    nwHex.second = std::max(nwHex.second - 1, -1);
+    seHex.first = std::min<Sint16>(seHex.first + 1, mgrid_.width());
+    seHex.second = std::min<Sint16>(seHex.second + 1, mgrid_.height());
 
     // TODO: RAII this, kinda like ScopeGuard11.  I expect it to be common.
     SDL_Rect temp;
