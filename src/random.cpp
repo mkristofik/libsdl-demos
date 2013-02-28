@@ -23,7 +23,72 @@
 #include <cstdlib>
 #include <iostream>
 #include <limits>
+#include <memory>
 #include <vector>
+
+namespace
+{
+    SDL_Rect mapArea = {10, 10, 882, 684};  // sized to hold 16x9 hexes
+    SDL_Rect minimapArea = {902, 10, 200, 167};
+
+    std::unique_ptr<RandomMap> rmap;
+    std::unique_ptr<Minimap> mini;
+    SDL_Rect miniBox;  // screen area of bounding box inside minimap
+
+    bool minimapHasFocus = false;
+}
+
+// Try to center the minimap's bounding box at the given screen coordinates,
+// moving the main map accordingly.
+void moveMiniBoxCenter(Sint16 px, Sint16 py)
+{
+    Sint16 tgtX = px - miniBox.w / 2;
+    Sint16 tgtY = py - miniBox.h / 2;
+    auto pct = rectPct(tgtX, tgtY, minimapArea);
+    Sint16 tgtMapX = pct.first * rmap->pWidth();
+    Sint16 tgtMapY = pct.second * rmap->pHeight();
+    auto mapLimit = rmap->maxPixel();
+    tgtMapX = bound(tgtMapX, 0, mapLimit.first);
+    tgtMapY = bound(tgtMapY, 0, mapLimit.second);
+
+    rmap->draw(tgtMapX, tgtMapY);
+    mini->draw();
+    mini->drawBoundingBox();
+}
+
+// If the user clicks inside the minimap, try to center the bounding box on the
+// mouse cursor.
+void handleMouseDown(const SDL_MouseButtonEvent &event)
+{
+    if (event.button == SDL_BUTTON_LEFT &&
+        insideRect(event.x, event.y, minimapArea))
+    {
+        minimapHasFocus = true;
+        moveMiniBoxCenter(event.x, event.y);
+    }
+    else {
+        minimapHasFocus = false;
+    }
+}
+
+// If the user has clicked inside the minimap, moving the mouse will drag the
+// bounding box.
+void handleMouseMotion(const SDL_MouseMotionEvent &event)
+{
+    if (!minimapHasFocus) {
+        return;
+    }
+
+    if (event.state & SDL_BUTTON(1)) {
+        moveMiniBoxCenter(event.x, event.y);
+    }
+}
+
+// After releasing the mouse button, the minimap bounding box no longer moves.
+void handleMouseUp(const SDL_MouseButtonEvent &event)
+{
+    minimapHasFocus = false;
+}
 
 extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
 {
@@ -55,11 +120,8 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     }
     SDL_WM_SetCaption("Random Map Test", "");
 
-    // Display area sized to hold 16x9 hexes.
-    SDL_Rect mapArea = {10, 10, 882, 684};
-    RandomMap m(18, 11, mapArea);
-    SDL_Rect minimapArea = {902, 10, 200, 167};
-    Minimap mini(m, minimapArea);
+    rmap = make_unique<RandomMap>(32, 18, mapArea);
+    mini = make_unique<Minimap>(*rmap, minimapArea);
 
     // TODO: unit tests for this would require an SDL main.  These assume the
     // map is drawn in the upper left corner of the screen.
@@ -71,9 +133,9 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     assert(str(m.getHexAtS(90, 144)) == str({1, 1}));
     */
 
-    m.draw(0, 0);
-    mini.draw();
-    SDL_Rect miniBox = mini.drawBoundingBox();
+    rmap->draw(0, 0);
+    mini->draw();
+    miniBox = mini->drawBoundingBox();
     SDL_UpdateRect(screen, 0, 0, 0, 0);
 
     bool isDone = false;
@@ -81,50 +143,14 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     while (!isDone) {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_MOUSEBUTTONDOWN) {
-                if (event.button.button == SDL_BUTTON_LEFT &&
-                    insideRect(event.button.x, event.button.y, minimapArea))
-                {
-                    // Try to place the center of the bounding box at the mouse
-                    // cursor.
-                    Sint16 tgtX = event.button.x - miniBox.w / 2;
-                    Sint16 tgtY = event.button.y - miniBox.h / 2;
-                    auto pct = rectPct(tgtX, tgtY, minimapArea);
-                    Sint16 tgtMapX = pct.first * m.pWidth();
-                    Sint16 tgtMapY = pct.second * m.pHeight();
-                    auto mapLimit = m.maxPixel();
-                    tgtMapX = bound(tgtMapX, 0, mapLimit.first);
-                    tgtMapY = bound(tgtMapY, 0, mapLimit.second);
-
-                    m.draw(tgtMapX, tgtMapY);
-                    mini.draw();
-                    mini.drawBoundingBox();
-                }
+                handleMouseDown(event.button);
             }
             else if (event.type == SDL_MOUSEMOTION) {
-                if (event.motion.state & SDL_BUTTON(1)) {
-                    // Try to place the center of the bounding box at the mouse
-                    // cursor.
-                    Sint16 tgtX = event.button.x - miniBox.w / 2;
-                    Sint16 tgtY = event.button.y - miniBox.h / 2;
-                    auto pct = rectPct(tgtX, tgtY, minimapArea);
-                    Sint16 tgtMapX = pct.first * m.pWidth();
-                    Sint16 tgtMapY = pct.second * m.pHeight();
-                    auto mapLimit = m.maxPixel();
-                    tgtMapX = bound(tgtMapX, 0, mapLimit.first);
-                    tgtMapY = bound(tgtMapY, 0, mapLimit.second);
-
-                    m.draw(tgtMapX, tgtMapY);
-                    mini.draw();
-                    mini.drawBoundingBox();
-                }
+                handleMouseMotion(event.motion);
             }
-            /*
             else if (event.type == SDL_MOUSEBUTTONUP) {
-                if (event.button.button == SDL_BUTTON_LEFT) {
-                    std::cout << "Left mouse released.\n";
-                }
+                handleMouseUp(event.button);
             }
-            */
             else if (event.type == SDL_QUIT) {
                 isDone = true;
             }
