@@ -14,6 +14,7 @@
 #define ALGO_H
 
 #include <algorithm>
+#include <memory>
 
 template <class Container, class T>
 bool contains(const Container &c, const T &elem)
@@ -27,6 +28,12 @@ T bound(const T &val, const U &minVal, const V &maxVal)
     if (val < minVal) return minVal;
     if (val > maxVal) return maxVal;
     return val;
+}
+
+template <class T, class... Args>
+std::unique_ptr<T> make_unique(Args &&... args)
+{
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 
 #endif
