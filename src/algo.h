@@ -16,9 +16,17 @@
 #include <algorithm>
 
 template <class Container, class T>
-bool contains(const Container& c, const T& elem)
+bool contains(const Container &c, const T &elem)
 {
     return find(std::begin(c), std::end(c), elem) != std::end(c);
+}
+
+template <class T, class U, class V>
+T bound(const T &val, const U &minVal, const V &maxVal)
+{
+    if (val < minVal) return minVal;
+    if (val > maxVal) return maxVal;
+    return val;
 }
 
 #endif

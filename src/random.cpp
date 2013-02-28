@@ -13,6 +13,7 @@
 #include "HexGrid.h"
 #include "Minimap.h"
 #include "RandomMap.h"
+#include "algo.h"
 #include "hex_utils.h"
 #include "sdl_helper.h"
 #include "terrain.h"
@@ -70,15 +71,10 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     assert(str(m.getHexAtS(90, 144)) == str({1, 1}));
     */
 
-    SDL_Rect miniBox;
-    for (Sint16 x = 0, y = 0; x <= 108; x += 18, y += 24) {
-        m.draw(x, y);
-        mini.draw();
-        miniBox = mini.drawBoundingBox();
-
-        SDL_UpdateRect(screen, 0, 0, 0, 0);
-        SDL_Delay(1000);
-    }
+    m.draw(0, 0);
+    mini.draw();
+    SDL_Rect miniBox = mini.drawBoundingBox();
+    SDL_UpdateRect(screen, 0, 0, 0, 0);
 
     bool isDone = false;
     SDL_Event event;
@@ -95,11 +91,10 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
                     auto pct = rectPct(tgtX, tgtY, minimapArea);
                     Sint16 tgtMapX = pct.first * m.pWidth();
                     Sint16 tgtMapY = pct.second * m.pHeight();
-                    if (tgtMapX < 0) tgtMapX = 0;
-                    if (tgtMapX > m.maxPixel().first) tgtMapX = m.maxPixel().first;
-                    if (tgtMapY < 0) tgtMapY = 0;
-                    if (tgtMapY > m.maxPixel().second) tgtMapY = m.maxPixel().second;
-                    std::cerr << tgtMapX << ' ' << tgtMapY << '\n';
+                    auto mapLimit = m.maxPixel();
+                    tgtMapX = bound(tgtMapX, 0, mapLimit.first);
+                    tgtMapY = bound(tgtMapY, 0, mapLimit.second);
+
                     m.draw(tgtMapX, tgtMapY);
                     mini.draw();
                     mini.drawBoundingBox();
@@ -114,11 +109,10 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
                     auto pct = rectPct(tgtX, tgtY, minimapArea);
                     Sint16 tgtMapX = pct.first * m.pWidth();
                     Sint16 tgtMapY = pct.second * m.pHeight();
-                    if (tgtMapX < 0) tgtMapX = 0;
-                    if (tgtMapX > m.maxPixel().first) tgtMapX = m.maxPixel().first;
-                    if (tgtMapY < 0) tgtMapY = 0;
-                    if (tgtMapY > m.maxPixel().second) tgtMapY = m.maxPixel().second;
-                    std::cerr << tgtMapX << ' ' << tgtMapY << '\n';
+                    auto mapLimit = m.maxPixel();
+                    tgtMapX = bound(tgtMapX, 0, mapLimit.first);
+                    tgtMapY = bound(tgtMapY, 0, mapLimit.second);
+
                     m.draw(tgtMapX, tgtMapY);
                     mini.draw();
                     mini.drawBoundingBox();
