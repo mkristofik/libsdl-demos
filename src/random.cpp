@@ -34,8 +34,9 @@ namespace
     std::unique_ptr<RandomMap> rmap;
     std::unique_ptr<Minimap> mini;
     SDL_Rect miniBox;  // screen area of bounding box inside minimap
-
     bool minimapHasFocus = false;
+
+    Uint32 elapsed_ms;  // time since last frame
 }
 
 // Try to center the minimap's bounding box at the given screen coordinates,
@@ -138,9 +139,18 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     miniBox = mini->drawBoundingBox();
     SDL_UpdateRect(screen, 0, 0, 0, 0);
 
+    std::vector<Uint32> frames;
     bool isDone = false;
+    auto prevFrameTime_ms = SDL_GetTicks();
     SDL_Event event;
     while (!isDone) {
+        auto curTime_ms = SDL_GetTicks();
+        elapsed_ms = curTime_ms - prevFrameTime_ms;
+        prevFrameTime_ms = curTime_ms;
+        if (!frames.empty() || elapsed_ms > 0) {  // skip zeroth frame
+            frames.push_back(elapsed_ms);
+        }
+
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_MOUSEBUTTONDOWN) {
                 handleMouseDown(event.button);
@@ -159,5 +169,8 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
         SDL_Delay(1);
     }
 
+    std::cout << "Average frame time: " << accumulate(std::begin(frames), std::end(frames), 0) / static_cast<double>(frames.size()) << '\n';
+    std::cout << "Minimum frame: " << *min_element(std::begin(frames), std::end(frames)) << '\n';
+    std::cout << "Maximum frame: " << *max_element(std::begin(frames), std::end(frames)) << '\n';
     return EXIT_SUCCESS;
 }
