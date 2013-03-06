@@ -52,5 +52,7 @@ void sdlDashedLineV(Sint16 px, Sint16 py, Uint16 len, Uint32 color);
 // Rectangle functions.
 bool insideRect(Sint16 x, Sint16 y, const SDL_Rect &rect);
 std::pair<double, double> rectPct(Sint16 x, Sint16 y, const SDL_Rect &rect);
+enum class Dir8 {None = -1, N, NE, E, SE, S, SW, W, NW};
+Dir8 nearEdge(Sint16 x, Sint16 y, const SDL_Rect &rect);
 
 #endif

@@ -163,3 +163,43 @@ std::pair<double, double> rectPct(Sint16 x, Sint16 y, const SDL_Rect &rect)
     return {(static_cast<double>(x) - rect.x) / (rect.w - 1),
             (static_cast<double>(y) - rect.y) / (rect.h - 1)};
 }
+
+Dir8 nearEdge(Sint16 x, Sint16 y, const SDL_Rect &rect)
+{
+    if (!insideRect(x, y, rect)) {
+        return Dir8::None;
+    }
+
+    const Sint16 edgeDist = 10;
+
+    if (x - rect.x < edgeDist) {  // left edge
+        if (y - rect.y < edgeDist) {
+            return Dir8::NW;
+        }
+        else if (rect.y + rect.h - 1 - y < edgeDist) {
+            return Dir8::SW;
+        }
+        else {
+            return Dir8::W;
+        }
+    }
+    else if (rect.x + rect.w - 1 - x < edgeDist) {  // right edge
+        if (y - rect.y < edgeDist) {
+            return Dir8::NE;
+        }
+        else if (rect.y + rect.h - 1 - y < edgeDist) {
+            return Dir8::SE;
+        }
+        else {
+            return Dir8::E;
+        }
+    }
+    else if (y - rect.y < edgeDist) {  // top edge
+        return Dir8::N;
+    }
+    else if (rect.y + rect.h - 1 - y < edgeDist) {
+        return Dir8::S;
+    }
+
+    return Dir8::None;
+}
