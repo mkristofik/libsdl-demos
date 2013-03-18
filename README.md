@@ -17,6 +17,8 @@ terrain types using a greedy graph coloring algorithm.
 
 ![screenshot](https://raw.github.com/mkristofik/libsdl-demos/master/random_screen.jpg)
 
+The latest feature is map scrolling.  You can click and drag within the minimap, or hover the mouse near a map edge to scroll the map.  This is probably best [seen on a video](http://youtu.be/foWstanCoUw).
+
 ## Hello World
 
 No learning experience is complete without a Hello World program, so here it
