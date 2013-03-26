@@ -18,11 +18,13 @@
 #include <cassert>
 #include <cmath>
 #include <iterator>
+#include <random>
 #include <tuple>
 
 namespace {
     std::vector<SdlSurface> tiles;
     std::vector<SdlSurface> edges;
+    std::vector<SdlSurface> obstacles;
 
     void loadTiles()
     {
@@ -57,6 +59,14 @@ namespace {
             edges.emplace_back(sdlLoadImage("../img/beach-sw.png"));
             edges.emplace_back(sdlLoadImage("../img/beach-nw.png"));
         }
+        if (obstacles.empty()) {
+            obstacles.emplace_back(sdlLoadImage("../img/grass-trees3.png"));
+            obstacles.emplace_back(sdlLoadImage("../img/dirt-mountain.png"));
+            obstacles.emplace_back(sdlLoadImage("../img/desert-hills.png"));
+            obstacles.emplace_back(sdlLoadImage("../img/water-reef2.png"));
+            obstacles.emplace_back(sdlLoadImage("../img/swamp-reeds.png"));
+            obstacles.emplace_back(sdlLoadImage("../img/snow-trees.png"));
+        }
     }
 
     Point rectCorner(const SDL_Rect &rect, Dir d)
@@ -74,6 +84,12 @@ namespace {
                 assert(false);
         }
     }
+
+    bool assignObstacle()
+    {
+        static std::uniform_real_distribution<> dist(0, 1);
+        return dist(randomGenerator()) < 0.10;
+    }
 }
 
 RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, const SDL_Rect &pDisplayArea)
@@ -86,6 +102,7 @@ RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, const SDL_Rect &pDisplayArea
     regionGraph_(numRegions_),
     tgrid_(hWidth + 2, hHeight + 2),
     terrain_(tgrid_.size()),
+    tobst_(tgrid_.size()),
     pDisplayArea_(pDisplayArea),
     mMaxX_(pWidth_ - pDisplayArea_.w),
     mMaxY_(pHeight_ - pDisplayArea_.h),
@@ -319,7 +336,16 @@ void RandomMap::assignTerrain()
 
     // Assign the terrain for the main grid.
     for (auto i = 0u; i < regions_.size(); ++i) {
-        terrain_[tIndex(i)] = rTerrain[regions_[i]];
+        auto tIdx = tIndex(i);
+        terrain_[tIdx] = rTerrain[regions_[i]];
+        if (assignObstacle()) {
+            tobst_[tIdx] = 1;
+            for (const auto &an : mgrid_.aryNeighbors(i)) {
+                if (assignObstacle()) {
+                    tobst_[tIndex(an)] = 1;
+                }
+            }
+        }
     }
 
     // Corners of the terrain grid mirror those of the main grid.
@@ -365,8 +391,13 @@ void RandomMap::drawTile(Sint16 hx, Sint16 hy)
     Sint16 spx = 0;
     Sint16 spy = 0;
     std::tie(spx, spy) = sPixelFromHex(hx, hy);
-    auto terrainType = terrain_[tIndex(hx, hy)];
+    auto tIdx = tIndex(hx, hy);
+    auto terrainType = terrain_[tIdx];
+
     sdlBlit(tiles[terrainType], spx, spy);
+    if (tobst_[tIdx]) {
+        sdlBlit(obstacles[terrainType], spx, spy);
+    }
 
     // Draw edge transitions for each neighboring tile.
     for (auto dir : Dir()) {

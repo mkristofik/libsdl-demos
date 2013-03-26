@@ -11,8 +11,9 @@
     See the COPYING.txt file for more details.
 */
 #include "HexGrid.h"
+
+#include "algo.h"
 #include <cassert>
-#include <ctime>
 #include <limits>
 #include <random>
 
@@ -64,9 +65,8 @@ int HexGrid::aryFromHex(const Point &hex) const
 
 Point HexGrid::hexRandom() const
 {
-    static std::minstd_rand gen(static_cast<unsigned int>(std::time(nullptr)));
     static std::uniform_int_distribution<Sint16> dist(0, size_ - 1);
-    Sint16 aRand = dist(gen);
+    Sint16 aRand = dist(randomGenerator());
     return hexFromAry(aRand);
 }
 

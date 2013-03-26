@@ -92,6 +92,7 @@ private:
     // hex in every direction.
     HexGrid tgrid_;
     std::vector<int> terrain_;
+    std::vector<char> tobst_;  // 1=obstacle present, 0=none
 
     // Visible portion of the map.  Max pixel is defined so that the display
     // area is always filled.
