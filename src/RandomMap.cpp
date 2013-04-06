@@ -21,6 +21,7 @@
 #include <random>
 #include <tuple>
 
+#include <iostream> // XXX
 namespace {
     std::vector<SdlSurface> tiles;
     std::vector<SdlSurface> edges;
@@ -60,10 +61,10 @@ namespace {
             edges.emplace_back(sdlLoadImage("../img/beach-nw.png"));
         }
         if (obstacles.empty()) {
-            obstacles.emplace_back(sdlLoadImage("../img/grass-trees3.png"));
+            obstacles.emplace_back(sdlLoadImage("../img/grass-trees.png"));
             obstacles.emplace_back(sdlLoadImage("../img/dirt-mountain.png"));
             obstacles.emplace_back(sdlLoadImage("../img/desert-hills.png"));
-            obstacles.emplace_back(sdlLoadImage("../img/water-reef2.png"));
+            obstacles.emplace_back(sdlLoadImage("../img/water-reef.png"));
             obstacles.emplace_back(sdlLoadImage("../img/swamp-reeds.png"));
             obstacles.emplace_back(sdlLoadImage("../img/snow-trees.png"));
         }
@@ -102,7 +103,7 @@ RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, const SDL_Rect &pDisplayArea
     regionGraph_(numRegions_),
     tgrid_(hWidth + 2, hHeight + 2),
     terrain_(tgrid_.size()),
-    tobst_(tgrid_.size()),
+    tObst_(tgrid_.size(), 0),
     pDisplayArea_(pDisplayArea),
     mMaxX_(pWidth_ - pDisplayArea_.w),
     mMaxY_(pHeight_ - pDisplayArea_.h),
@@ -113,6 +114,7 @@ RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, const SDL_Rect &pDisplayArea
 
     generateRegions();
     buildRegionGraph();
+    generateObstacles();
     assignTerrain();
 }
 
@@ -330,6 +332,32 @@ void RandomMap::buildRegionGraph()
     }
 }
 
+void RandomMap::generateObstacles()
+{
+    std::uniform_real_distribution<> dist(0, 1);
+    std::vector<double> obstChance(mgrid_.size(), 0.0);
+
+    // Assign random values to each hex.
+    generate(std::begin(obstChance), std::end(obstChance),
+             [&] { return dist(randomGenerator()); });
+
+    // Relaxation step - replace each hex with the average of its neighbors.
+    for (auto i = 0u; i < obstChance.size(); ++i) {
+        double sum = 0.0;
+        auto neighbors = mgrid_.aryNeighbors(i);
+        for (auto n : neighbors) {
+            sum += obstChance[n];
+        }
+        assert(!neighbors.empty());
+        obstChance[i] = sum / neighbors.size();
+
+        // Any hex above the threshold gets an obstacle.
+        if (obstChance[i] > 0.58) {  // TODO: make this configurable?
+            tObst_[tIndex(i)] = 1;
+        }
+    }
+}
+
 void RandomMap::assignTerrain()
 {
     auto rTerrain = graphTerrain(regionGraph_);
@@ -338,14 +366,6 @@ void RandomMap::assignTerrain()
     for (auto i = 0u; i < regions_.size(); ++i) {
         auto tIdx = tIndex(i);
         terrain_[tIdx] = rTerrain[regions_[i]];
-        if (assignObstacle()) {
-            tobst_[tIdx] = 1;
-            for (const auto &an : mgrid_.aryNeighbors(i)) {
-                if (assignObstacle()) {
-                    tobst_[tIndex(an)] = 1;
-                }
-            }
-        }
     }
 
     // Corners of the terrain grid mirror those of the main grid.
@@ -395,7 +415,7 @@ void RandomMap::drawTile(Sint16 hx, Sint16 hy)
     auto terrainType = terrain_[tIdx];
 
     sdlBlit(tiles[terrainType], spx, spy);
-    if (tobst_[tIdx]) {
+    if (tObst_[tIdx]) {
         sdlBlit(obstacles[terrainType], spx, spy);
     }
 

@@ -64,6 +64,7 @@ private:
     // Construct an adjacency list for each region.
     void buildRegionGraph();
 
+    void generateObstacles();
     void assignTerrain();
     void drawTile(Sint16 hx, Sint16 hy);
 
@@ -92,7 +93,7 @@ private:
     // hex in every direction.
     HexGrid tgrid_;
     std::vector<int> terrain_;
-    std::vector<char> tobst_;  // 1=obstacle present, 0=none
+    std::vector<char> tObst_;  // 1=obstacle present, 0=none
 
     // Visible portion of the map.  Max pixel is defined so that the display
     // area is always filled.
