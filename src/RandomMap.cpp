@@ -335,11 +335,11 @@ void RandomMap::buildRegionGraph()
 void RandomMap::generateObstacles()
 {
     std::uniform_real_distribution<> dist(0, 1);
-    std::vector<double> obstChance(mgrid_.size(), 0.0);
+    std::vector<double> obstChance;
 
     // Assign random values to each hex.
-    generate(std::begin(obstChance), std::end(obstChance),
-             [&] { return dist(randomGenerator()); });
+    generate_n(std::back_inserter(obstChance), mgrid_.size(),
+               [&] { return dist(randomGenerator()); });
 
     // Relaxation step - replace each hex with the average of its neighbors.
     for (auto i = 0u; i < obstChance.size(); ++i) {
@@ -348,11 +348,9 @@ void RandomMap::generateObstacles()
         for (auto n : neighbors) {
             sum += obstChance[n];
         }
-        assert(!neighbors.empty());
-        obstChance[i] = sum / neighbors.size();
 
         // Any hex above the threshold gets an obstacle.
-        if (obstChance[i] > 0.58) {  // TODO: make this configurable?
+        if (sum / neighbors.size() > 0.58) {  // TODO: make this configurable?
             tObst_[tIndex(i)] = 1;
         }
     }
@@ -415,9 +413,6 @@ void RandomMap::drawTile(Sint16 hx, Sint16 hy)
     auto terrainType = terrain_[tIdx];
 
     sdlBlit(tiles[terrainType], spx, spy);
-    if (tObst_[tIdx]) {
-        sdlBlit(obstacles[terrainType], spx, spy);
-    }
 
     // Draw edge transitions for each neighboring tile.
     for (auto dir : Dir()) {
@@ -429,6 +424,10 @@ void RandomMap::drawTile(Sint16 hx, Sint16 hy)
             int e = edgeType * 6 + int(dir);
             sdlBlit(edges[e], spx, spy);
         }
+    }
+
+    if (tObst_[tIdx]) {
+        sdlBlit(obstacles[terrainType], spx, spy);
     }
 }
 

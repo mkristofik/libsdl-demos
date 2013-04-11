@@ -11,13 +11,18 @@ This was inspired by Amit Patel's [blog
 post](http://www-cs-students.stanford.edu/~amitp/game-programming/polygon-map-generation/)
 about Voronoi Diagrams being used for random map generation.  I'm surprised I
 never learned about them in school because they're quite useful.  I wanted to
-see if this idea could be scaled down to a hexagonal tile map.  I think the
-results were pretty good.  The program generates n random regions and assigns
-terrain types using a greedy graph coloring algorithm.
+see if this idea could be scaled down to a hexagonal tile map.  You can see the
+results in the screenshot below.
+
+**Technical details:**
+
+- Random regions generated using a [Voronoi Diagram](http://en.wikipedia.org/wiki/Voronoi_diagrams) and [Lloyd's Algorithm](http://en.wikipedia.org/wiki/Lloyd%27s_algorithm).
+- Six possible terrain types, assigned by a [greedy graph coloring](http://en.wikipedia.org/wiki/Greedy_coloring) algorithm.
+- Edge transitions between tiles of different terrain.
+- Map scrolling by hovering the mouse near a map edge, or click-and-drag within the minimap ([video](http://youtu.be/foWstanCoUw)).
+- Obstacles (trees, mountains, etc.) assigned by a simple [value noise](http://en.wikipedia.org/wiki/Value_noise) algorithm.  Any hex above a threshold gets an obstacle.
 
 ![screenshot](https://raw.github.com/mkristofik/libsdl-demos/master/random_screen.jpg)
-
-The latest feature is map scrolling.  You can click and drag within the minimap, or hover the mouse near a map edge to scroll the map.  This is probably best [seen on a video](http://youtu.be/foWstanCoUw).
 
 ## Hello World
 
