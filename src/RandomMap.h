@@ -81,6 +81,10 @@ private:
     Point sPixel(const Point &mp) const;
     Point sPixel(Sint16 mpx, Sint16 mpy) const;
 
+    // Find shortest number of hops between regions.  Intended as a high-level
+    // first pass at generating paths between distant hexes.
+    std::vector<int> getRegionPath(int rBegin, int rEnd) const;
+
     HexGrid mgrid_;
     Sint16 pWidth_;
     Sint16 pHeight_;
@@ -88,6 +92,7 @@ private:
     std::vector<int> regions_;  // assign each tile to a region [0,numRegions)
     std::vector<Point> centers_;  // center hex of each region
     AdjacencyList regionGraph_;
+    AdjacencyList regionGraphWalk_;  // walkable paths to adjacent regions
 
     // To help make the edges of the map look nice, we extend the grid by one
     // hex in every direction.
