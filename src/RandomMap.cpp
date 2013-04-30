@@ -130,6 +130,11 @@ RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, const SDL_Rect &pDisplayArea
     generateObstacles();
     buildRegionGraph();
     assignTerrain();
+
+    // XXX
+    auto path = getRegionPath(0, 8);
+    copy(std::begin(path), std::end(path), std::ostream_iterator<int>(std::cout, ", "));
+    std::cout << '\n';
 }
 
 Sint16 RandomMap::pWidth() const
@@ -347,11 +352,19 @@ void RandomMap::buildRegionGraph()
 
             // If both this hex and an adjacent hex are clear of obstacles,
             // then there is a walkable path between the two regions.
-            if (tObst_[tIndex(reg)] == 0 && tObst_[tIndex(rNeighbor)] == 0 &&
+            if (tObst_[tIndex(i)] == 0 && tObst_[tIndex(an)] == 0 &&
                 !contains(regionGraphWalk_[reg], rNeighbor)) {
                 regionGraphWalk_[reg].push_back(rNeighbor);
             }
         }
+    }
+
+    // XXX
+    for (auto i = 0u; i < regionGraphWalk_.size(); ++i) {
+        std::cout << i << ": ";
+        copy(std::begin(regionGraphWalk_[i]), std::end(regionGraphWalk_[i]),
+             std::ostream_iterator<int>(std::cout, ", "));
+        std::cout << "\n";
     }
 }
 
@@ -512,9 +525,11 @@ std::vector<int> RandomMap::getRegionPath(int rBegin, int rEnd) const
     // The heap functions confusingly use operator< to build a heap with the
     // *largest* element on top.  We want to get the node with the *least* cost,
     // so we have to order nodes in the opposite way.
-    auto orderByCost = [&] (int lhs, int rhs)
+    auto orderByCost = [&] (int lhs, int rhs) -> bool
     {
-        return nodes[rhs]->costSoFar > nodes[lhs]->costSoFar;
+        assert(nodes.find(lhs) != nodes.end());
+        assert(nodes.find(rhs) != nodes.end());
+        return nodes[lhs]->costSoFar > nodes[rhs]->costSoFar;
     };
 
     nodes.emplace(rBegin, make_node(-1, 0, 0));
@@ -523,18 +538,24 @@ std::vector<int> RandomMap::getRegionPath(int rBegin, int rEnd) const
     // Dijkstra's Algorithm.
     while (!open.empty()) {
         auto curReg = open.front();
+        std::cout << "Considering region " << curReg << '\n'; // XXX
         if (curReg == rEnd) {
             goal = nodes[curReg];
+            std::cout << "Path found!\n";
             break;
         }
 
-        auto curNode = nodes[curReg];
+        auto &curNode = nodes[curReg];
         curNode->visited = true;
         for (auto n : regionGraphWalk_[curReg]) {
+            std::cout << "Looking at neighbor " << n << "..."; // XXX
             auto nIter = nodes.find(n);
             if (nIter != nodes.end()) {
                 auto &nNode = nIter->second;
-                if (nNode->visited) continue;
+                if (nNode->visited) {
+                    std::cout << "Was visited, ignoring\n";  // XXX
+                    continue;
+                }
 
                 // Are we on a shorter path to the neighbor region than what
                 // we've already seen?  If so, update the neighbor's node data.
@@ -542,6 +563,10 @@ std::vector<int> RandomMap::getRegionPath(int rBegin, int rEnd) const
                     nNode->prev = curReg;
                     nNode->costSoFar = curNode->costSoFar + 1;
                     make_heap(std::begin(open), std::end(open), orderByCost);
+                    std::cout << "Got better path cost " << curNode->costSoFar + 1 << "\n";  // XXX
+                }
+                else {
+                    std::cout << "Worse path, do nothing\n";  // XXX
                 }
             }
             else {
@@ -549,6 +574,7 @@ std::vector<int> RandomMap::getRegionPath(int rBegin, int rEnd) const
                 nodes.emplace(n, make_node(curReg, curNode->costSoFar + 1, 0));
                 open.push_back(n);
                 push_heap(std::begin(open), std::end(open), orderByCost);
+                std::cout << "New node cost " << curNode->costSoFar + 1 << "\n";  // XXX
             }
         }
 
