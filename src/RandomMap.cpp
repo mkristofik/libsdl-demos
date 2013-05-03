@@ -11,6 +11,8 @@
     See the COPYING.txt file for more details.
 */
 #include "RandomMap.h"
+
+#include "Pathfinder.h"
 #include "algo.h"
 #include "sdl_helper.h"
 #include "terrain.h"
@@ -18,22 +20,11 @@
 #include <cassert>
 #include <cmath>
 #include <iterator>
-#include <memory>
+#include <queue>
 #include <random>
 #include <tuple>
-#include <unordered_map>
 
 #include <iostream> // XXX
-
-struct PathNode
-{
-    int prev;
-    int costSoFar;
-    int estTotalCost;
-    bool visited;
-};
-
-typedef std::shared_ptr<PathNode> PathNodePtr;
 
 namespace {
     std::vector<SdlSurface> tiles;
@@ -97,12 +88,6 @@ namespace {
             default:
                 assert(false);
         }
-    }
-
-    PathNodePtr make_node(int prev, int costSoFar, int estTotalCost)
-    {
-        return std::make_shared<PathNode>(PathNode{prev, costSoFar,
-                                                   estTotalCost, false});
     }
 }
 
@@ -467,6 +452,59 @@ void RandomMap::drawTile(Sint16 hx, Sint16 hy)
     }
 }
 
+void RandomMap::makeWalkable()
+{
+    // Build a list of walkable hexes in each region.
+    std::vector<std::vector<int>> walkByReg(numRegions_);
+    for (auto i = 0u; i < regions_.size(); ++i) {
+        if (walkable(i)) {
+            auto r = regions_[i];
+            walkByReg[r].push_back(i);
+        }
+    }
+
+    // Keep track of all hexes we can reach through multiple function calls.
+    std::vector<char> visited(regions_.size(), 0);
+    
+    for (auto i = 0; i < numRegions_; ++i) {
+        if (!walkByReg[i].empty()) {
+            makeRegionWalkable(walkByReg[i], visited);
+        }
+    }
+}
+
+void RandomMap::makeRegionWalkable(std::vector<int> &hexes,
+                                   std::vector<char> &visited)
+{
+    // Breadth-first search from the first walkable hex in each region.  If
+    // the regions are open, we should reach every hex this way.
+    std::queue<int> q;
+    q.push(hexes[0]);
+    while (!q.empty()) {
+        auto hex = q.front();
+        visited[hex] = 1;
+        for (auto n : aryNeighborsSameRegion(hex)) {
+            if (walkable(n) && visited[n] == 0) {
+                q.push(n);
+            }
+        }
+        q.pop();
+    }
+
+    // Were any hexes not visited by the search?
+    auto notFound = find_if(std::begin(hexes), std::end(hexes),
+                            [&] (int hex) { return visited[hex] == 0; });
+    if (notFound == std::end(hexes)) return;
+
+    // TODO: Starting from a hex we couldn't reach, find a path to the nearest
+    // walkable hex already visited in this region.
+    // TODO: Clear this path of obstacles.
+    
+    // Start over with the hex that wasn't found last time.
+    iter_swap(std::begin(hexes), notFound);
+    makeRegionWalkable(hexes, visited);
+}
+
 int RandomMap::tIndex(int mIndex) const
 {
     assert(mIndex >= 0 && mIndex < mgrid_.size());
@@ -512,87 +550,31 @@ Point RandomMap::sPixel(Sint16 mpx, Sint16 mpy) const
     return {spx, spy};
 }
 
+std::vector<int> RandomMap::aryNeighborsSameRegion(int aIndex) const
+{
+    assert(aIndex >= 0 && aIndex < mgrid_.size());
+
+    auto myReg = regions_[aIndex];
+    std::vector<int> nbrs;
+
+    for (auto n : mgrid_.aryNeighbors(aIndex)) {
+        if (regions_[n] == myReg) {
+            nbrs.push_back(n);
+        }
+    }
+
+    return nbrs;
+}
+
+bool RandomMap::walkable(int mIndex) const
+{
+    return tObst_[tIndex(mIndex)] == 0;
+}
+
 std::vector<int> RandomMap::getRegionPath(int rBegin, int rEnd) const
 {
-    if (rBegin == rEnd) return {rBegin};
-
-    // Record shortest path costs for every region we examine.
-    std::unordered_map<int, PathNodePtr> nodes;
-    // Maintain a heap of nodes to consider.
-    std::vector<int> open;
-    PathNodePtr goal;
-
-    // The heap functions confusingly use operator< to build a heap with the
-    // *largest* element on top.  We want to get the node with the *least* cost,
-    // so we have to order nodes in the opposite way.
-    auto orderByCost = [&] (int lhs, int rhs) -> bool
-    {
-        assert(nodes.find(lhs) != nodes.end());
-        assert(nodes.find(rhs) != nodes.end());
-        return nodes[lhs]->costSoFar > nodes[rhs]->costSoFar;
-    };
-
-    nodes.emplace(rBegin, make_node(-1, 0, 0));
-    open.push_back(rBegin);
-
-    // Dijkstra's Algorithm.
-    while (!open.empty()) {
-        auto curReg = open.front();
-        std::cout << "Considering region " << curReg << '\n'; // XXX
-        if (curReg == rEnd) {
-            goal = nodes[curReg];
-            std::cout << "Path found!\n";
-            break;
-        }
-
-        auto &curNode = nodes[curReg];
-        curNode->visited = true;
-        for (auto n : regionGraphWalk_[curReg]) {
-            std::cout << "Looking at neighbor " << n << "..."; // XXX
-            auto nIter = nodes.find(n);
-            if (nIter != nodes.end()) {
-                auto &nNode = nIter->second;
-                if (nNode->visited) {
-                    std::cout << "Was visited, ignoring\n";  // XXX
-                    continue;
-                }
-
-                // Are we on a shorter path to the neighbor region than what
-                // we've already seen?  If so, update the neighbor's node data.
-                if (curNode->costSoFar + 1 < nNode->costSoFar) {
-                    nNode->prev = curReg;
-                    nNode->costSoFar = curNode->costSoFar + 1;
-                    make_heap(std::begin(open), std::end(open), orderByCost);
-                    std::cout << "Got better path cost " << curNode->costSoFar + 1 << "\n";  // XXX
-                }
-                else {
-                    std::cout << "Worse path, do nothing\n";  // XXX
-                }
-            }
-            else {
-                // We haven't seen this region before.  Add it to the open list.
-                nodes.emplace(n, make_node(curReg, curNode->costSoFar + 1, 0));
-                open.push_back(n);
-                push_heap(std::begin(open), std::end(open), orderByCost);
-                std::cout << "New node cost " << curNode->costSoFar + 1 << "\n";  // XXX
-            }
-        }
-
-        pop_heap(std::begin(open), std::end(open), orderByCost);
-        open.pop_back();
-    }
-
-    if (!goal) {
-        return {};
-    }
-
-    // Build the path from the chain of nodes leading to the goal.
-    std::vector<int> path = {rEnd};
-    auto n = goal;
-    while (n->prev != -1) {
-        path.push_back(n->prev);
-        n = nodes[n->prev];
-    }
-    reverse(std::begin(path), std::end(path));
-    return path;
+    Pathfinder pf;
+    pf.setNeighbors([this] (int n) { return regionGraphWalk_[n]; });
+    pf.setGoal(rEnd);
+    return pf.getPathFrom(rBegin);
 }

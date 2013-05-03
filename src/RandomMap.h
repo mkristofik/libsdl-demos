@@ -68,6 +68,11 @@ private:
     void assignTerrain();
     void drawTile(Sint16 hx, Sint16 hy);
 
+    // Ensure all walkable hexes in each region are reachable from every other
+    // walkable hex.
+    void makeWalkable();
+    void makeRegionWalkable(std::vector<int> &hexes, std::vector<char> &visited);
+
     // The terrain grid extends from (-1,-1) to (hWidth,hHeight) inclusive on
     // the main grid.  These conversions let us always refer to the map in main
     // grid coordinates.  Return -1 if the result is outside the terrain grid.
@@ -80,6 +85,12 @@ private:
     Point mPixel(Sint16 spx, Sint16 spy) const;
     Point sPixel(const Point &mp) const;
     Point sPixel(Sint16 mpx, Sint16 mpy) const;
+
+    // Return true if the given hex doesn't have an obstacle.
+    bool walkable(int mIndex) const;
+
+    // Get all neighbors of a given hex within the same region.
+    std::vector<int> aryNeighborsSameRegion(int aIndex) const;
 
     // Find shortest number of hops between regions.  Intended as a high-level
     // first pass at generating paths between distant hexes.

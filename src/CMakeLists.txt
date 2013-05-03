@@ -23,7 +23,8 @@ add_executable(${EXENAME} hello.cpp)
 target_link_libraries(${EXENAME} mingw32 SDLmain SDL SDL_image SDL_ttf)
 
 set(EXE2 random)
-set(SRC random.cpp HexGrid.cpp Minimap.cpp RandomMap.cpp algo.cpp hex_utils.cpp sdl_helper.cpp terrain.cpp)
+set(SRC random.cpp HexGrid.cpp Minimap.cpp Pathfinder.cpp RandomMap.cpp
+    algo.cpp hex_utils.cpp sdl_helper.cpp terrain.cpp)
 add_executable(${EXE2} ${SRC})
 target_link_libraries(${EXE2} mingw32 SDLmain SDL SDL_image)
 
