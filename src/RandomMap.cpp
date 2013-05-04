@@ -113,6 +113,7 @@ RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, const SDL_Rect &pDisplayArea
 
     generateRegions();
     generateObstacles();
+    makeWalkable();
     buildRegionGraph();
     assignTerrain();
 
@@ -496,9 +497,20 @@ void RandomMap::makeRegionWalkable(std::vector<int> &hexes,
                             [&] (int hex) { return visited[hex] == 0; });
     if (notFound == std::end(hexes)) return;
 
-    // TODO: Starting from a hex we couldn't reach, find a path to the nearest
+    // Starting from a hex we couldn't reach, find a path to the nearest
     // walkable hex already visited in this region.
-    // TODO: Clear this path of obstacles.
+    Pathfinder pf;
+    pf.setNeighbors([this] (int node) { return aryNeighborsSameRegion(node); });
+    pf.setGoal([this, &visited] (int node) {
+        return visited[node] == 1 && walkable(node);
+    });
+    auto path = pf.getPathFrom(*notFound);
+
+    // Clear this path of obstacles.
+    for (auto n : path) {
+        tObst_[tIndex(n)] = 0;
+        visited[n] = 1;
+    }
     
     // Start over with the hex that wasn't found last time.
     iter_swap(std::begin(hexes), notFound);
