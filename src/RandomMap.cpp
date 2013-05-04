@@ -392,15 +392,19 @@ void RandomMap::assignTerrain()
     auto nw = tgrid_.aryCorner(Dir::NW);
     auto nwMirror = tIndex(mgrid_.aryCorner(Dir::NW));
     terrain_[nw] = terrain_[nwMirror];
+    tObst_[nw] = tObst_[nwMirror];
     auto ne = tgrid_.aryCorner(Dir::NE);
     auto neMirror = tIndex(mgrid_.aryCorner(Dir::NE));
     terrain_[ne] = terrain_[neMirror];
+    tObst_[ne] = tObst_[neMirror];
     auto se = tgrid_.aryCorner(Dir::SE);
     auto seMirror = tIndex(mgrid_.aryCorner(Dir::SE));
     terrain_[se] = terrain_[seMirror];
+    tObst_[se] = tObst_[seMirror];
     auto sw = tgrid_.aryCorner(Dir::SW);
     auto swMirror = tIndex(mgrid_.aryCorner(Dir::SW));
     terrain_[sw] = terrain_[swMirror];
+    tObst_[sw] = tObst_[swMirror];
 
     // Hexes along the top and bottom edges mirror those directly below and
     // above, respectively.
@@ -408,10 +412,12 @@ void RandomMap::assignTerrain()
         Point top = {hx, -1};
         auto topMirror = adjacent(top, Dir::S);
         terrain_[tIndex(top)] = terrain_[tIndex(topMirror)];
+        tObst_[tIndex(top)] = tObst_[tIndex(topMirror)];
 
         Point bottom = {hx, mgrid_.height()};
         auto bottomMirror = adjacent(bottom, Dir::N);
         terrain_[tIndex(bottom)] = terrain_[tIndex(bottomMirror)];
+        tObst_[tIndex(bottom)] = tObst_[tIndex(bottomMirror)];
     }
     // Hexes along the left and right edges mirror their NE and SW neighbors,
     // respectively.
@@ -419,10 +425,12 @@ void RandomMap::assignTerrain()
         Point left = {-1, hy};
         auto leftMirror = adjacent(left, Dir::NE);
         terrain_[tIndex(left)] = terrain_[tIndex(leftMirror)];
+        tObst_[tIndex(left)] = tObst_[tIndex(leftMirror)];
 
         Point right = {mgrid_.width(), hy};
         auto rightMirror = adjacent(right, Dir::SW);
         terrain_[tIndex(right)] = terrain_[tIndex(rightMirror)];
+        tObst_[tIndex(right)] = tObst_[tIndex(rightMirror)];
     }
 }
 
