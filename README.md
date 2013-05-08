@@ -21,8 +21,21 @@ results in the screenshot below.
 - Edge transitions between tiles of different terrain.
 - Map scrolling by hovering the mouse near a map edge, or click-and-drag within the minimap ([video](http://youtu.be/foWstanCoUw)).
 - Obstacles (trees, mountains, etc.) assigned by a simple [value noise](http://en.wikipedia.org/wiki/Value_noise) algorithm.  Any hex above a threshold gets an obstacle.
+- No islands within each region.  Every open hex in a region is guaranteed to be reachable from every other open hex.
+- Pathfinding using [A\*](http://en.wikipedia.org/wiki/A*) and Dijkstra's Algorithm.
 
 ![screenshot](https://raw.github.com/mkristofik/libsdl-demos/master/random_screen.jpg)
+
+## Pathfinder
+
+[Pathfinder](https://github.com/mkristofik/libsdl-demos/blob/master/src/Pathfinder.h) is a class within the Random Map Generator project, but there are no dependencies that would prevent it from being compiled separately.  It aims to be a generic C++11 implementation of the A\* algorithm.  To avoid tying it to a particular graph or tile structure, all inputs are provided by lambda functions.  If the nodes of your map can be represented by integers, you can use this class.  Users must answer up to four key questions:
+
+- What steps can you take from a given node?
+- What is the cost for going from node A to node B?  *(Note: does not support negative edge weights)*
+- Can you make a lower-bound estimate of a node's distance from the goal?
+- What does the goal look like?
+
+I think that last question is the most interesting.  Sometimes you don't know where the goal node is.  There might even be more than one.  A user might ask, "find me shortest path to the nearest water hex."  Any water hex will do.  A nice property of A\*/Dijkstra's is stopping once it reaches *any* goal node, knowing that it has taken the shortest path to get there.
 
 ## Hello World
 
