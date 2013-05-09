@@ -21,6 +21,7 @@ results in the screenshot below.
 - Edge transitions between tiles of different terrain.
 - Map scrolling by hovering the mouse near a map edge, or click-and-drag within the minimap ([video](http://youtu.be/foWstanCoUw)).
 - Obstacles (trees, mountains, etc.) assigned by a simple [value noise](http://en.wikipedia.org/wiki/Value_noise) algorithm.  Any hex above a threshold gets an obstacle.
+- Multiple obstacle images per terrain type, chosen randomly at map generation time.
 - No islands within each region.  Every open hex in a region is guaranteed to be reachable from every other open hex.
 - Pathfinding using [A\*](http://en.wikipedia.org/wiki/A*) and Dijkstra's Algorithm.
 
