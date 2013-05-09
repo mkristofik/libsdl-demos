@@ -14,9 +14,8 @@
 #define RANDOM_MAP_H
 
 #include "HexGrid.h"
-#include "SDL_stdinc.h"
-#include "SDL_video.h"
 #include "hex_utils.h"
+#include "sdl_helper.h"
 #include "terrain.h"
 #include <vector>
 
@@ -110,6 +109,7 @@ private:
     HexGrid tgrid_;
     std::vector<int> terrain_;
     std::vector<char> tObst_;  // 1=obstacle present, 0=none
+    std::vector<SdlSurface *> tObstImg_;  // which obstacle graphics to use
 
     // Visible portion of the map.  Max pixel is defined so that the display
     // area is always filled.

@@ -14,7 +14,6 @@
 
 #include "Pathfinder.h"
 #include "algo.h"
-#include "sdl_helper.h"
 #include "terrain.h"
 #include <algorithm>
 #include <cassert>
@@ -29,7 +28,12 @@
 namespace {
     std::vector<SdlSurface> tiles;
     std::vector<SdlSurface> edges;
-    std::vector<SdlSurface> obstacles;
+    std::vector<SdlSurface> grassObstacles;
+    std::vector<SdlSurface> dirtObstacles;
+    std::vector<SdlSurface> sandObstacles;
+    std::vector<SdlSurface> waterObstacles;
+    std::vector<SdlSurface> swampObstacles;
+    std::vector<SdlSurface> snowObstacles;
 
     void loadTiles()
     {
@@ -64,13 +68,38 @@ namespace {
             edges.emplace_back(sdlLoadImage("../img/beach-sw.png"));
             edges.emplace_back(sdlLoadImage("../img/beach-nw.png"));
         }
-        if (obstacles.empty()) {
-            obstacles.emplace_back(sdlLoadImage("../img/grass-trees.png"));
-            obstacles.emplace_back(sdlLoadImage("../img/dirt-mountain.png"));
-            obstacles.emplace_back(sdlLoadImage("../img/desert-hills.png"));
-            obstacles.emplace_back(sdlLoadImage("../img/water-reef.png"));
-            obstacles.emplace_back(sdlLoadImage("../img/swamp-reeds.png"));
-            obstacles.emplace_back(sdlLoadImage("../img/snow-trees.png"));
+        if (grassObstacles.empty()) {
+            grassObstacles.emplace_back(sdlLoadImage("../img/grass-trees-1.png"));
+            grassObstacles.emplace_back(sdlLoadImage("../img/grass-trees-2.png"));
+            grassObstacles.emplace_back(sdlLoadImage("../img/grass-trees-3.png"));  // TODO: the pine trees have a harsh hex edge
+        }
+        if (dirtObstacles.empty()) {
+            dirtObstacles.emplace_back(sdlLoadImage("../img/dirt-trees-1.png"));
+            dirtObstacles.emplace_back(sdlLoadImage("../img/dirt-trees-2.png"));
+            dirtObstacles.emplace_back(sdlLoadImage("../img/dirt-trees-3.png"));
+        }
+        if (sandObstacles.empty()) {
+            sandObstacles.emplace_back(sdlLoadImage("../img/desert-plants-1.png"));
+            sandObstacles.emplace_back(sdlLoadImage("../img/desert-plants-2.png"));
+            sandObstacles.emplace_back(sdlLoadImage("../img/desert-plants-3.png"));
+            sandObstacles.emplace_back(sdlLoadImage("../img/desert-plants-4.png"));
+        }
+        if (waterObstacles.empty()) {
+            waterObstacles.emplace_back(sdlLoadImage("../img/water-reef-1.png"));
+            waterObstacles.emplace_back(sdlLoadImage("../img/water-reef-2.png"));
+            waterObstacles.emplace_back(sdlLoadImage("../img/water-reef-3.png"));
+        }
+        if (swampObstacles.empty()) {
+            swampObstacles.emplace_back(sdlLoadImage("../img/swamp-mushrooms-1.png"));
+            swampObstacles.emplace_back(sdlLoadImage("../img/swamp-mushrooms-2.png"));
+            swampObstacles.emplace_back(sdlLoadImage("../img/swamp-mushrooms-3.png"));
+        }
+        if (snowObstacles.empty()) {
+            // TODO: all of these have harsh edges to them.  Needs to be more
+            // desert-like.
+            snowObstacles.emplace_back(sdlLoadImage("../img/snow-trees-1.png"));
+            snowObstacles.emplace_back(sdlLoadImage("../img/snow-trees-2.png"));
+            snowObstacles.emplace_back(sdlLoadImage("../img/snow-trees-3.png"));
         }
     }
 
@@ -89,6 +118,36 @@ namespace {
                 assert(false);
         }
     }
+
+    SdlSurface * getObstacle(int terrain)
+    {
+        std::vector<SdlSurface> *choices = 0;
+        switch (terrain) {
+            case GRASS:
+                choices = &grassObstacles;
+                break;
+            case DIRT:
+                choices = &dirtObstacles;
+                break;
+            case SAND:
+                choices = &sandObstacles;
+                break;
+            case WATER:
+                choices = &waterObstacles;
+                break;
+            case SWAMP:
+                choices = &swampObstacles;
+                break;
+            case SNOW:
+            default:
+                choices = &snowObstacles;
+                break;
+        }
+
+        std::uniform_int_distribution<size_t> dist(0, choices->size() - 1);
+        auto i = dist(randomGenerator());
+        return &((*choices)[i]);
+    }
 }
 
 RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, const SDL_Rect &pDisplayArea)
@@ -103,6 +162,7 @@ RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, const SDL_Rect &pDisplayArea
     tgrid_(hWidth + 2, hHeight + 2),
     terrain_(tgrid_.size()),
     tObst_(tgrid_.size(), 0),
+    tObstImg_(tgrid_.size(), nullptr),
     pDisplayArea_(pDisplayArea),
     mMaxX_(pWidth_ - pDisplayArea_.w),
     mMaxY_(pHeight_ - pDisplayArea_.h),
@@ -111,6 +171,7 @@ RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, const SDL_Rect &pDisplayArea
 {
     assert(hWidth > 1);
 
+    loadTiles();
     generateRegions();
     generateObstacles();
     makeWalkable();
@@ -167,7 +228,7 @@ void RandomMap::draw(Sint16 mpx, Sint16 mpy)
     SDL_GetClipRect(screen, &temp);
     SDL_SetClipRect(screen, &pDisplayArea_);
 
-    loadTiles();
+    // TODO: fix it so we can call loadTiles() here again.
     sdlClear(pDisplayArea_);
     for (Sint16 hx = nwHex.first; hx <= seHex.first; ++hx) {
         for (Sint16 hy = nwHex.second; hy <= seHex.second; ++hy) {
@@ -386,6 +447,7 @@ void RandomMap::assignTerrain()
     for (auto i = 0u; i < regions_.size(); ++i) {
         auto tIdx = tIndex(i);
         terrain_[tIdx] = rTerrain[regions_[i]];
+        if (tObst_[tIdx]) tObstImg_[tIdx] = getObstacle(terrain_[tIdx]);
     }
 
     // Corners of the terrain grid mirror those of the main grid.
@@ -393,44 +455,58 @@ void RandomMap::assignTerrain()
     auto nwMirror = tIndex(mgrid_.aryCorner(Dir::NW));
     terrain_[nw] = terrain_[nwMirror];
     tObst_[nw] = tObst_[nwMirror];
+    if (tObst_[nw]) tObstImg_[nw] = getObstacle(terrain_[nw]);
     auto ne = tgrid_.aryCorner(Dir::NE);
     auto neMirror = tIndex(mgrid_.aryCorner(Dir::NE));
     terrain_[ne] = terrain_[neMirror];
     tObst_[ne] = tObst_[neMirror];
+    if (tObst_[ne]) tObstImg_[ne] = getObstacle(terrain_[ne]);
     auto se = tgrid_.aryCorner(Dir::SE);
     auto seMirror = tIndex(mgrid_.aryCorner(Dir::SE));
     terrain_[se] = terrain_[seMirror];
     tObst_[se] = tObst_[seMirror];
+    if (tObst_[se]) tObstImg_[se] = getObstacle(terrain_[se]);
     auto sw = tgrid_.aryCorner(Dir::SW);
     auto swMirror = tIndex(mgrid_.aryCorner(Dir::SW));
     terrain_[sw] = terrain_[swMirror];
     tObst_[sw] = tObst_[swMirror];
+    if (tObst_[sw]) tObstImg_[sw] = getObstacle(terrain_[sw]);
 
     // Hexes along the top and bottom edges mirror those directly below and
     // above, respectively.
     for (Sint16 hx = 0; hx < mgrid_.width(); ++hx) {
         Point top = {hx, -1};
         auto topMirror = adjacent(top, Dir::S);
-        terrain_[tIndex(top)] = terrain_[tIndex(topMirror)];
-        tObst_[tIndex(top)] = tObst_[tIndex(topMirror)];
+        auto topIdx = tIndex(top);
+        terrain_[topIdx] = terrain_[tIndex(topMirror)];
+        tObst_[topIdx] = tObst_[tIndex(topMirror)];
+        if (tObst_[topIdx]) tObstImg_[topIdx] = getObstacle(terrain_[topIdx]);
 
         Point bottom = {hx, mgrid_.height()};
         auto bottomMirror = adjacent(bottom, Dir::N);
-        terrain_[tIndex(bottom)] = terrain_[tIndex(bottomMirror)];
-        tObst_[tIndex(bottom)] = tObst_[tIndex(bottomMirror)];
+        auto botIdx = tIndex(bottom);
+        terrain_[botIdx] = terrain_[tIndex(bottomMirror)];
+        tObst_[botIdx] = tObst_[tIndex(bottomMirror)];
+        if (tObst_[botIdx]) tObstImg_[botIdx] = getObstacle(terrain_[botIdx]);
     }
     // Hexes along the left and right edges mirror their NE and SW neighbors,
     // respectively.
     for (Sint16 hy = 0; hy < mgrid_.height(); ++hy) {
         Point left = {-1, hy};
         auto leftMirror = adjacent(left, Dir::NE);
-        terrain_[tIndex(left)] = terrain_[tIndex(leftMirror)];
-        tObst_[tIndex(left)] = tObst_[tIndex(leftMirror)];
+        auto leftIdx = tIndex(left);
+        terrain_[leftIdx] = terrain_[tIndex(leftMirror)];
+        tObst_[leftIdx] = tObst_[tIndex(leftMirror)];
+        if (tObst_[leftIdx]) tObstImg_[leftIdx] =
+            getObstacle(terrain_[leftIdx]);
 
         Point right = {mgrid_.width(), hy};
         auto rightMirror = adjacent(right, Dir::SW);
-        terrain_[tIndex(right)] = terrain_[tIndex(rightMirror)];
-        tObst_[tIndex(right)] = tObst_[tIndex(rightMirror)];
+        auto rightIdx = tIndex(right);
+        terrain_[rightIdx] = terrain_[tIndex(rightMirror)];
+        tObst_[rightIdx] = tObst_[tIndex(rightMirror)];
+        if (tObst_[rightIdx]) tObstImg_[rightIdx] =
+            getObstacle(terrain_[rightIdx]);
     }
 }
 
@@ -456,13 +532,15 @@ void RandomMap::drawTile(Sint16 hx, Sint16 hy)
         }
     }
 
-    if (tObst_[tIdx]) {
-        sdlBlit(obstacles[terrainType], spx, spy);
+    if (tObst_[tIdx] && tObstImg_[tIdx]) {
+        sdlBlit(*(tObstImg_[tIdx]), spx, spy);
     }
 }
 
 void RandomMap::makeWalkable()
 {
+    // TODO: this fails if there is only one walkable hex in a region.
+
     // Build a list of walkable hexes in each region.
     std::vector<std::vector<int>> walkByReg(numRegions_);
     for (auto i = 0u; i < regions_.size(); ++i) {
