@@ -71,7 +71,6 @@ private:
 
     // Ensure all walkable hexes in each region are reachable from every other
     // walkable hex.
-    // TODO: ensure every region has at least one walkable neighbor.
     void makeWalkable();
     void makeRegionWalkable(std::vector<int> &hexes, std::vector<char> &visited);
 

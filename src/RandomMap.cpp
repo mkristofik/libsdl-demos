@@ -95,8 +95,6 @@ namespace {
             swampObstacles.emplace_back(sdlLoadImage("../img/swamp-mushrooms-3.png"));
         }
         if (snowObstacles.empty()) {
-            // TODO: all of these have harsh edges to them.  Needs to be more
-            // desert-like.
             snowObstacles.emplace_back(sdlLoadImage("../img/snow-trees-1.png"));
             snowObstacles.emplace_back(sdlLoadImage("../img/snow-trees-2.png"));
             snowObstacles.emplace_back(sdlLoadImage("../img/snow-trees-3.png"));
@@ -559,7 +557,24 @@ void RandomMap::drawObstacle(Sint16 hx, Sint16 hy)
 
 void RandomMap::makeWalkable()
 {
-    // TODO: this fails if there is only one walkable hex in a region.
+    std::vector<char> reachable(numRegions_, 0);
+
+    // Ensure every region can reach at least one other region.  Clear the
+    // first pair of hexes we see from each region and a neighboring region.
+    for (auto i = 0u; i < regions_.size(); ++i) {
+        auto reg = regions_[i];
+        if (reachable[reg] == 1) continue;
+
+        for (const auto &n : mgrid_.aryNeighbors(i)) {
+            auto rNeighbor = regions_[n];
+            if (rNeighbor == reg) continue;
+
+            tObst_[tIndex(i)] = 0;
+            tObst_[tIndex(n)] = 0;
+            reachable[reg] = 1;
+            break;
+        }
+    }
 
     // Build a list of walkable hexes in each region.
     std::vector<std::vector<int>> walkByReg(numRegions_);
