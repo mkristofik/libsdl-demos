@@ -65,10 +65,13 @@ private:
 
     void generateObstacles();
     void assignTerrain();
+    void setObstacleImages();
     void drawTile(Sint16 hx, Sint16 hy);
+    void drawObstacle(Sint16 hx, Sint16 hy);
 
     // Ensure all walkable hexes in each region are reachable from every other
     // walkable hex.
+    // TODO: ensure every region has at least one walkable neighbor.
     void makeWalkable();
     void makeRegionWalkable(std::vector<int> &hexes, std::vector<char> &visited);
 
@@ -109,7 +112,16 @@ private:
     HexGrid tgrid_;
     std::vector<int> terrain_;
     std::vector<char> tObst_;  // 1=obstacle present, 0=none
-    std::vector<SdlSurface *> tObstImg_;  // which obstacle graphics to use
+
+    struct Obstacle
+    {
+        Sint16 pxOffset;  // handle images not sized exactly to one hex
+        Sint16 pyOffset;
+        SdlSurface img;
+        
+        Obstacle() : pxOffset(0), pyOffset(0), img() {}
+    };
+    std::vector<Obstacle> tObstImg_;  // which obstacle graphics to use
 
     // Visible portion of the map.  Max pixel is defined so that the display
     // area is always filled.

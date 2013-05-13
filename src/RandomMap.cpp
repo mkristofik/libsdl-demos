@@ -71,7 +71,7 @@ namespace {
         if (grassObstacles.empty()) {
             grassObstacles.emplace_back(sdlLoadImage("../img/grass-trees-1.png"));
             grassObstacles.emplace_back(sdlLoadImage("../img/grass-trees-2.png"));
-            grassObstacles.emplace_back(sdlLoadImage("../img/grass-trees-3.png"));  // TODO: the pine trees have a harsh hex edge
+            grassObstacles.emplace_back(sdlLoadImage("../img/grass-trees-3.png"));
         }
         if (dirtObstacles.empty()) {
             dirtObstacles.emplace_back(sdlLoadImage("../img/dirt-trees-1.png"));
@@ -119,7 +119,7 @@ namespace {
         }
     }
 
-    SdlSurface * getObstacle(int terrain)
+    SdlSurface getObstacle(int terrain)
     {
         std::vector<SdlSurface> *choices = 0;
         switch (terrain) {
@@ -146,7 +146,7 @@ namespace {
 
         std::uniform_int_distribution<size_t> dist(0, choices->size() - 1);
         auto i = dist(randomGenerator());
-        return &((*choices)[i]);
+        return (*choices)[i];
     }
 }
 
@@ -162,7 +162,7 @@ RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, const SDL_Rect &pDisplayArea
     tgrid_(hWidth + 2, hHeight + 2),
     terrain_(tgrid_.size()),
     tObst_(tgrid_.size(), 0),
-    tObstImg_(tgrid_.size(), nullptr),
+    tObstImg_(tgrid_.size()),
     pDisplayArea_(pDisplayArea),
     mMaxX_(pWidth_ - pDisplayArea_.w),
     mMaxY_(pHeight_ - pDisplayArea_.h),
@@ -177,6 +177,7 @@ RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, const SDL_Rect &pDisplayArea
     makeWalkable();
     buildRegionGraph();
     assignTerrain();
+    setObstacleImages();
 
     // XXX
     auto path = getRegionPath(0, 8);
@@ -233,6 +234,11 @@ void RandomMap::draw(Sint16 mpx, Sint16 mpy)
     for (Sint16 hx = nwHex.first; hx <= seHex.first; ++hx) {
         for (Sint16 hy = nwHex.second; hy <= seHex.second; ++hy) {
             drawTile(hx, hy);
+        }
+    }
+    for (Sint16 hx = nwHex.first; hx <= seHex.first; ++hx) {
+        for (Sint16 hy = nwHex.second; hy <= seHex.second; ++hy) {
+            drawObstacle(hx, hy);
         }
     }
     SDL_SetClipRect(screen, &temp);
@@ -447,7 +453,6 @@ void RandomMap::assignTerrain()
     for (auto i = 0u; i < regions_.size(); ++i) {
         auto tIdx = tIndex(i);
         terrain_[tIdx] = rTerrain[regions_[i]];
-        if (tObst_[tIdx]) tObstImg_[tIdx] = getObstacle(terrain_[tIdx]);
     }
 
     // Corners of the terrain grid mirror those of the main grid.
@@ -455,22 +460,18 @@ void RandomMap::assignTerrain()
     auto nwMirror = tIndex(mgrid_.aryCorner(Dir::NW));
     terrain_[nw] = terrain_[nwMirror];
     tObst_[nw] = tObst_[nwMirror];
-    if (tObst_[nw]) tObstImg_[nw] = getObstacle(terrain_[nw]);
     auto ne = tgrid_.aryCorner(Dir::NE);
     auto neMirror = tIndex(mgrid_.aryCorner(Dir::NE));
     terrain_[ne] = terrain_[neMirror];
     tObst_[ne] = tObst_[neMirror];
-    if (tObst_[ne]) tObstImg_[ne] = getObstacle(terrain_[ne]);
     auto se = tgrid_.aryCorner(Dir::SE);
     auto seMirror = tIndex(mgrid_.aryCorner(Dir::SE));
     terrain_[se] = terrain_[seMirror];
     tObst_[se] = tObst_[seMirror];
-    if (tObst_[se]) tObstImg_[se] = getObstacle(terrain_[se]);
     auto sw = tgrid_.aryCorner(Dir::SW);
     auto swMirror = tIndex(mgrid_.aryCorner(Dir::SW));
     terrain_[sw] = terrain_[swMirror];
     tObst_[sw] = tObst_[swMirror];
-    if (tObst_[sw]) tObstImg_[sw] = getObstacle(terrain_[sw]);
 
     // Hexes along the top and bottom edges mirror those directly below and
     // above, respectively.
@@ -480,14 +481,12 @@ void RandomMap::assignTerrain()
         auto topIdx = tIndex(top);
         terrain_[topIdx] = terrain_[tIndex(topMirror)];
         tObst_[topIdx] = tObst_[tIndex(topMirror)];
-        if (tObst_[topIdx]) tObstImg_[topIdx] = getObstacle(terrain_[topIdx]);
 
         Point bottom = {hx, mgrid_.height()};
         auto bottomMirror = adjacent(bottom, Dir::N);
         auto botIdx = tIndex(bottom);
         terrain_[botIdx] = terrain_[tIndex(bottomMirror)];
         tObst_[botIdx] = tObst_[tIndex(bottomMirror)];
-        if (tObst_[botIdx]) tObstImg_[botIdx] = getObstacle(terrain_[botIdx]);
     }
     // Hexes along the left and right edges mirror their NE and SW neighbors,
     // respectively.
@@ -497,16 +496,29 @@ void RandomMap::assignTerrain()
         auto leftIdx = tIndex(left);
         terrain_[leftIdx] = terrain_[tIndex(leftMirror)];
         tObst_[leftIdx] = tObst_[tIndex(leftMirror)];
-        if (tObst_[leftIdx]) tObstImg_[leftIdx] =
-            getObstacle(terrain_[leftIdx]);
 
         Point right = {mgrid_.width(), hy};
         auto rightMirror = adjacent(right, Dir::SW);
         auto rightIdx = tIndex(right);
         terrain_[rightIdx] = terrain_[tIndex(rightMirror)];
         tObst_[rightIdx] = tObst_[tIndex(rightMirror)];
-        if (tObst_[rightIdx]) tObstImg_[rightIdx] =
-            getObstacle(terrain_[rightIdx]);
+    }
+}
+
+void RandomMap::setObstacleImages()
+{
+    for (auto i = 0u; i < tObstImg_.size(); ++i) {
+        if (tObst_[i] == 0) continue;
+
+        Obstacle &o = tObstImg_[i];
+        o.img = getObstacle(terrain_[i]);
+        o.pxOffset = pHexSize - o.img->w;
+        o.pyOffset = pHexSize - o.img->h;
+
+        // Shift the graphics a tiny bit for a less gridded look.
+        std::uniform_int_distribution<size_t> dist(-3, 3);
+        o.pxOffset += dist(randomGenerator());
+        o.pyOffset += dist(randomGenerator());
     }
 }
 
@@ -531,9 +543,18 @@ void RandomMap::drawTile(Sint16 hx, Sint16 hy)
             sdlBlit(edges[e], spx, spy);
         }
     }
+}
 
-    if (tObst_[tIdx] && tObstImg_[tIdx]) {
-        sdlBlit(*(tObstImg_[tIdx]), spx, spy);
+void RandomMap::drawObstacle(Sint16 hx, Sint16 hy)
+{
+    Sint16 spx = 0;
+    Sint16 spy = 0;
+    std::tie(spx, spy) = sPixelFromHex(hx, hy);
+    auto tIdx = tIndex(hx, hy);
+
+    if (tObst_[tIdx]) {
+        sdlBlit(tObstImg_[tIdx].img, spx + tObstImg_[tIdx].pxOffset,
+                spy + tObstImg_[tIdx].pyOffset);
     }
 }
 
