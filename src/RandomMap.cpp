@@ -229,7 +229,6 @@ void RandomMap::draw(Sint16 mpx, Sint16 mpy)
     SDL_GetClipRect(screen, &temp);
     SDL_SetClipRect(screen, &pDisplayArea_);
 
-    // TODO: fix it so we can call loadTiles() here again.
     sdlClear(pDisplayArea_);
     for (Sint16 hx = nwHex.first; hx <= seHex.first; ++hx) {
         for (Sint16 hy = nwHex.second; hy <= seHex.second; ++hy) {
@@ -512,8 +511,8 @@ void RandomMap::setObstacleImages()
 
         Obstacle &o = tObstImg_[i];
         o.img = getObstacle(terrain_[i]);
-        o.pxOffset = pHexSize - o.img->w;
-        o.pyOffset = pHexSize - o.img->h;
+        o.pxOffset = (pHexSize - o.img->w) / 2;
+        o.pyOffset = (pHexSize - o.img->h) / 2;
 
         // Shift the graphics a tiny bit for a less gridded look.
         std::uniform_int_distribution<size_t> dist(-3, 3);
