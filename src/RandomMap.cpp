@@ -34,6 +34,7 @@ namespace {
     std::vector<SdlSurface> waterObstacles;
     std::vector<SdlSurface> swampObstacles;
     std::vector<SdlSurface> snowObstacles;
+    SdlSurface hexHighlight;
 
     void loadTiles()
     {
@@ -98,6 +99,9 @@ namespace {
             snowObstacles.emplace_back(sdlLoadImage("../img/snow-trees-1.png"));
             snowObstacles.emplace_back(sdlLoadImage("../img/snow-trees-2.png"));
             snowObstacles.emplace_back(sdlLoadImage("../img/snow-trees-3.png"));
+        }
+        if (!hexHighlight) {
+            hexHighlight = sdlLoadImage("../img/hex-yellow.png");
         }
     }
 
@@ -165,7 +169,8 @@ RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, const SDL_Rect &pDisplayArea
     mMaxX_(pWidth_ - pDisplayArea_.w),
     mMaxY_(pHeight_ - pDisplayArea_.h),
     px_(0),
-    py_(0)
+    py_(0),
+    selectedHex_(hInvalid)
 {
     assert(hWidth > 1);
 
@@ -228,6 +233,7 @@ void RandomMap::draw(Sint16 mpx, Sint16 mpy)
     SDL_SetClipRect(screen, &pDisplayArea_);
 
     sdlClear(pDisplayArea_);
+
     for (Sint16 hx = nwHex.first; hx <= seHex.first; ++hx) {
         for (Sint16 hy = nwHex.second; hy <= seHex.second; ++hy) {
             drawTile(hx, hy);
@@ -238,7 +244,20 @@ void RandomMap::draw(Sint16 mpx, Sint16 mpy)
             drawObstacle(hx, hy);
         }
     }
+
+    if (selectedHex_ != hInvalid) {
+        Sint16 spx = 0;
+        Sint16 spy = 0;
+        std::tie(spx, spy) = sPixelFromHex(selectedHex_);
+        sdlBlit(hexHighlight, spx, spy);
+    }
+
     SDL_SetClipRect(screen, &temp);
+}
+
+void RandomMap::redraw()
+{
+    draw(px_, py_);
 }
 
 Point RandomMap::mDrawnAt() const
@@ -329,6 +348,12 @@ int RandomMap::getTerrainAt(Sint16 mpx, Sint16 mpy) const
 {
     Point mHex = getHexAtM(mpx, mpy);
     return terrain_[tIndex(mHex)];
+}
+
+void RandomMap::selectHex(const Point &hex)
+{
+    assert(!mgrid_.offGrid(hex));
+    selectedHex_ = hex;
 }
 
 void RandomMap::generateRegions()

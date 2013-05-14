@@ -33,6 +33,10 @@ public:
     int aryFromHex(Sint16 hx, Sint16 hy) const;
     int aryFromHex(const Point &hex) const;
 
+    // Accessors for the four corners of the grid.
+    int aryCorner(Dir d) const;
+    Point hexCorner(Dir d) const;
+
     // Generate a random hex in the range [(0,0), (width-1,height-1)].
     Point hexRandom() const;
 
@@ -47,10 +51,6 @@ public:
 
     // Return true if hex is outside the grid boundary.
     bool offGrid(const Point &hex) const;
-
-    // Accessors for the four corners of the grid.
-    int aryCorner(Dir d) const;
-    Point hexCorner(Dir d) const;
 
 private:
     Sint16 width_;

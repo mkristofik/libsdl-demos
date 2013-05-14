@@ -38,6 +38,7 @@ public:
     // display area filled.
     Point maxPixel() const;
     void draw(Sint16 mpx, Sint16 mpy);
+    void redraw();  // use last draw position
 
     // Return the last draw() target.
     Point mDrawnAt() const;
@@ -54,6 +55,9 @@ public:
 
     // Get the terrain type at the given map coordinates.
     int getTerrainAt(Sint16 mpx, Sint16 mpy) const;
+
+    // Highlight the given hex.
+    void selectHex(const Point &hex);
 
 private:
     // Use a Voronoi diagram to generate a random set of regions.
@@ -131,6 +135,8 @@ private:
     // Current upper-left pixel in map coordinates.
     Sint16 px_;
     Sint16 py_;
+
+    Point selectedHex_;
 };
 
 #endif
