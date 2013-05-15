@@ -40,6 +40,8 @@ namespace
     Uint32 elapsed_ms;  // time since last frame
     Uint32 timeNearEdge_ms;  // time mouse spent near map edges
     Dir8 mouseNearMapEdge;
+    Point nextMapLoc;  // where to move the map next
+    Point nextHex;  // where to move the selected hex
 }
 
 // Try to center the minimap's bounding box at the given screen coordinates,
@@ -55,9 +57,7 @@ void moveMiniBoxCenter(Sint16 px, Sint16 py)
     tgtMapX = bound(tgtMapX, 0, mapLimit.first);
     tgtMapY = bound(tgtMapY, 0, mapLimit.second);
 
-    rmap->draw(tgtMapX, tgtMapY);
-    mini->draw();
-    mini->drawBoundingBox();
+    nextMapLoc = {tgtMapX, tgtMapY};
 }
 
 void scrollMap(Dir8 direction)
@@ -108,15 +108,11 @@ void scrollMap(Dir8 direction)
             break;
     }
 
-    if (curPixel != Point{px, py}) {
-        rmap->draw(px, py);
-        mini->draw();
-        mini->drawBoundingBox();
-    }
+    nextMapLoc = {px, py};
 }
 
 // If the user clicks inside the minimap, try to center the bounding box on the
-// mouse cursor.
+// mouse cursor.  If the user clicks inside the main map, highlight that hex.
 void handleMouseDown(const SDL_MouseButtonEvent &event)
 {
     if (event.button == SDL_BUTTON_LEFT &&
@@ -127,6 +123,11 @@ void handleMouseDown(const SDL_MouseButtonEvent &event)
     }
     else {
         minimapHasFocus = false;
+    }
+
+    if (event.button == SDL_BUTTON_LEFT &&
+        insideRect(event.x, event.y, mapArea)) {
+        nextHex = rmap->getHexAtS(event.x, event.y);
     }
 }
 
@@ -213,6 +214,10 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
             frames.push_back(elapsed_ms);
         }
 
+        auto curMapLoc = rmap->mDrawnAt();
+        nextMapLoc = curMapLoc;
+        nextHex = rmap->getSelectedHex();
+
         // Scroll the map if the mouse hovers near a map edge for more than a
         // second.
         if (mouseNearMapEdge != Dir8::None) {
@@ -239,6 +244,14 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
                 isDone = true;
             }
         }
+
+        if (curMapLoc != nextMapLoc || nextHex != rmap->getSelectedHex()) {
+            rmap->selectHex(nextHex);
+            rmap->draw(nextMapLoc.first, nextMapLoc.second);
+            mini->draw();
+            mini->drawBoundingBox();
+        }
+
         SDL_UpdateRect(screen, 0, 0, 0, 0);
         SDL_Delay(1);
     }

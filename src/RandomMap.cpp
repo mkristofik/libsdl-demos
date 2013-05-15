@@ -352,8 +352,17 @@ int RandomMap::getTerrainAt(Sint16 mpx, Sint16 mpy) const
 
 void RandomMap::selectHex(const Point &hex)
 {
-    assert(!mgrid_.offGrid(hex));
-    selectedHex_ = hex;
+    if (!mgrid_.offGrid(hex)) {
+        selectedHex_ = hex;
+    }
+    else {
+        selectedHex_ = hInvalid;
+    }
+}
+
+Point RandomMap::getSelectedHex() const
+{
+    return selectedHex_;
 }
 
 void RandomMap::generateRegions()

@@ -58,6 +58,7 @@ public:
 
     // Highlight the given hex.
     void selectHex(const Point &hex);
+    Point getSelectedHex() const;
 
 private:
     // Use a Voronoi diagram to generate a random set of regions.
