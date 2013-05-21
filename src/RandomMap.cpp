@@ -299,7 +299,7 @@ Point RandomMap::getHexAtM(Sint16 mpx, Sint16 mpy) const
     Sint16 hy = mpy / tilingHeight;
     Sint16 yMod = mpy % tilingHeight;
 
-    if (yMod < tilingWidth / 2) {
+    if (yMod < tilingHeight / 2) {
         if ((xMod * 2 + yMod) < (pHexSize / 2)) {
             --hx;
             --hy;
