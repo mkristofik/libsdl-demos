@@ -35,6 +35,7 @@ namespace {
     std::vector<SdlSurface> swampObstacles;
     std::vector<SdlSurface> snowObstacles;
     SdlSurface hexHighlight;
+    SdlSurface pathHighlight;
 
     void loadTiles()
     {
@@ -102,6 +103,9 @@ namespace {
         }
         if (!hexHighlight) {
             hexHighlight = sdlLoadImage("../img/hex-yellow.png");
+        }
+        if (!pathHighlight) {
+            pathHighlight = sdlLoadImage("../img/darken-linger.png");
         }
     }
 
@@ -245,6 +249,17 @@ void RandomMap::draw(Sint16 mpx, Sint16 mpy)
         }
     }
 
+    for (auto node : selectedPath_) {
+        Sint16 spx = 0;
+        Sint16 spy = 0;
+        std::tie(spx, spy) = sPixel(node);
+        std::cerr << node << " (" << spx << ',' << spy << "); ";
+        sdlBlit(pathHighlight, spx, spy);
+    }
+    if (!selectedPath_.empty()) {
+        std::cerr << '\n';
+    }
+
     if (selectedHex_ != hInvalid) {
         Sint16 spx = 0;
         Sint16 spy = 0;
@@ -363,6 +378,41 @@ void RandomMap::selectHex(const Point &hex)
 Point RandomMap::getSelectedHex() const
 {
     return selectedHex_;
+}
+
+void RandomMap::highlightPath(const Point &hSrc, const Point &hDest)
+{
+    if (hSrc == hInvalid || hDest == hInvalid) return;
+
+    int aSrc = mgrid_.aryFromHex(hSrc);
+    int aDest = mgrid_.aryFromHex(hDest);
+    if (aSrc == aDest) {
+        selectedPath_ = {aSrc};
+        return;
+    }
+
+    int rSrc = regions_[aSrc];
+    int rDest = regions_[aDest];
+    if (rSrc != rDest) return;
+
+    Pathfinder pf;
+    pf.setNeighbors([this] (int curNode) {
+        std::vector<int> ret;
+        for (auto n : mgrid_.aryNeighbors(curNode)) {
+            if (walkable(n) && regions_[n] == regions_[curNode]) {
+                ret.push_back(n);
+            }
+        }
+
+        return ret;
+    });
+    pf.setGoal(aDest);
+    pf.setEstimate([this, &hDest] (int node) -> int {
+        return hexDist(mgrid_.hexFromAry(node), hDest);
+    });
+
+    std::cout << "NEW PATH FROM " << aSrc << " TO " << aDest << "\n";
+    selectedPath_ = pf.getPathFrom(aSrc);
 }
 
 void RandomMap::generateRegions()
@@ -715,6 +765,11 @@ Point RandomMap::sPixel(Sint16 mpx, Sint16 mpy) const
     Sint16 spx = mpx - px_ + pDisplayArea_.x;
     Sint16 spy = mpy - py_ + pDisplayArea_.y;
     return {spx, spy};
+}
+
+Point RandomMap::sPixel(int mIndex) const
+{
+    return sPixelFromHex(mgrid_.hexFromAry(mIndex));
 }
 
 std::vector<int> RandomMap::aryNeighborsSameRegion(int aIndex) const

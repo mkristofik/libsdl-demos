@@ -94,11 +94,13 @@ std::vector<int> Pathfinder::getPathFrom(int start) const
     // A* algorithm.  Decays to Dijkstra's if estimate function is always 0.
     while (!open.empty()) {
         auto loc = open.front();
-        std::cout << "Considering node " << loc << '\n'; // XXX
+        pop_heap(std::begin(open), std::end(open), orderByCost);
+        open.pop_back();
+        std::cout << "Considering node " << loc << " cost " << nodes[loc]->estTotalCost << std::endl; // XXX
         if (goal_(loc)) {
             goalLoc = loc;
             goalNode = nodes[loc];
-            std::cout << "Path found!\n";  // XXX
+            std::cout << "Path found!" << std::endl;  // XXX
             break;
         }
 
@@ -112,7 +114,7 @@ std::vector<int> Pathfinder::getPathFrom(int start) const
             if (nIter != nodes.end()) {
                 auto &nNode = nIter->second;
                 if (nNode->visited) {
-                    std::cout << "Was visited, ignoring\n";  // XXX
+                    std::cout << "Was visited, ignoring" << std::endl;  // XXX
                     continue;
                 }
 
@@ -123,10 +125,10 @@ std::vector<int> Pathfinder::getPathFrom(int start) const
                     nNode->costSoFar = curNode->costSoFar + step;
                     nNode->estTotalCost = nNode->costSoFar + estimate_(n);
                     make_heap(std::begin(open), std::end(open), orderByCost);
-                    std::cout << "Got better path cost " << curNode->costSoFar + step << "\n";  // XXX
+                    std::cout << "Got better path cost so far " << nNode->costSoFar << std::endl;  // XXX
                 }
                 else {
-                    std::cout << "Worse path, do nothing\n";  // XXX
+                    std::cout << "Worse path, do nothing" << std::endl;  // XXX
                 }
             }
             else {
@@ -135,15 +137,13 @@ std::vector<int> Pathfinder::getPathFrom(int start) const
                     curNode->costSoFar + step + estimate_(n)));
                 open.push_back(n);
                 push_heap(std::begin(open), std::end(open), orderByCost);
-                std::cout << "New node cost " << curNode->costSoFar + 1 << "\n";  // XXX
+                std::cout << "New node cost " << nodes[n]->estTotalCost << std::endl;  // XXX
             }
         }
-
-        pop_heap(std::begin(open), std::end(open), orderByCost);
-        open.pop_back();
     }
 
     if (!goalNode) {
+        std::cout << "Failed!" << std::endl;
         return {};
     }
 

@@ -60,6 +60,8 @@ public:
     void selectHex(const Point &hex);
     Point getSelectedHex() const;
 
+    void highlightPath(const Point &hSrc, const Point &hDest);
+
 private:
     // Use a Voronoi diagram to generate a random set of regions.
     void generateRegions();
@@ -91,6 +93,7 @@ private:
     Point mPixel(Sint16 spx, Sint16 spy) const;
     Point sPixel(const Point &mp) const;
     Point sPixel(Sint16 mpx, Sint16 mpy) const;
+    Point sPixel(int mIndex) const;
 
     // Return true if the given hex doesn't have an obstacle.
     bool walkable(int mIndex) const;
@@ -138,6 +141,7 @@ private:
     Sint16 py_;
 
     Point selectedHex_;
+    std::vector<int> selectedPath_;
 };
 
 #endif

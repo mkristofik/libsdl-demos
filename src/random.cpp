@@ -42,6 +42,8 @@ namespace
     Dir8 mouseNearMapEdge;
     Point nextMapLoc;  // where to move the map next
     Point nextHex;  // where to move the selected hex
+    Point pathToHex;  // highlight a path to here
+    Point pathToHexPrev;
 }
 
 // Try to center the minimap's bounding box at the given screen coordinates,
@@ -143,6 +145,14 @@ void handleMouseMotion(const SDL_MouseMotionEvent &event)
     }
     else {
         mouseNearMapEdge = nearEdge(event.x, event.y, mapArea);
+        if (insideRect(event.x, event.y, mapArea) &&
+            rmap->getSelectedHex() != hInvalid)
+        {
+            pathToHex = rmap->getHexAtS(event.x, event.y);
+        }
+        else {
+            pathToHex = hInvalid;
+        }
     }
 }
 
@@ -186,6 +196,8 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     mini = make_unique<Minimap>(*rmap, minimapArea);
     timeNearEdge_ms = 0;
     mouseNearMapEdge = Dir8::None;
+    pathToHex = hInvalid;
+    pathToHexPrev = hInvalid;
 
     // TODO: unit tests for this would require an SDL main.  These assume the
     // map is drawn in the upper left corner of the screen.
@@ -214,9 +226,9 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
             frames.push_back(elapsed_ms);
         }
 
-        auto curMapLoc = rmap->mDrawnAt();
-        nextMapLoc = curMapLoc;
+        nextMapLoc = rmap->mDrawnAt();
         nextHex = rmap->getSelectedHex();
+        pathToHexPrev = pathToHex;
 
         // Scroll the map if the mouse hovers near a map edge for more than a
         // second.
@@ -245,8 +257,12 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
             }
         }
 
-        if (curMapLoc != nextMapLoc || nextHex != rmap->getSelectedHex()) {
+        if (nextMapLoc != rmap->mDrawnAt() ||
+            nextHex != rmap->getSelectedHex() ||
+            pathToHex != pathToHexPrev)
+        {
             rmap->selectHex(nextHex);
+            rmap->highlightPath(rmap->getSelectedHex(), pathToHex);
             rmap->draw(nextMapLoc.first, nextMapLoc.second);
             mini->draw();
             mini->drawBoundingBox();
