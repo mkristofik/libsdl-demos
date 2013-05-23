@@ -105,7 +105,7 @@ namespace {
             hexHighlight = sdlLoadImage("../img/hex-yellow.png");
         }
         if (!pathHighlight) {
-            pathHighlight = sdlLoadImage("../img/darken-linger.png");
+            pathHighlight = sdlLoadImage("../img/hex-shadow.png");
         }
     }
 
@@ -382,10 +382,17 @@ Point RandomMap::getSelectedHex() const
 
 void RandomMap::highlightPath(const Point &hSrc, const Point &hDest)
 {
-    if (hSrc == hInvalid || hDest == hInvalid) return;
+    if (hSrc == hInvalid || hDest == hInvalid) {
+        selectedPath_ = {};
+        return;
+    }
 
     int aSrc = mgrid_.aryFromHex(hSrc);
     int aDest = mgrid_.aryFromHex(hDest);
+    if (!walkable(aSrc) || !walkable(aDest)) {
+       selectedPath_ = {};
+       return;
+    }
     if (aSrc == aDest) {
         selectedPath_ = {aSrc};
         return;
@@ -393,7 +400,7 @@ void RandomMap::highlightPath(const Point &hSrc, const Point &hDest)
 
     int rSrc = regions_[aSrc];
     int rDest = regions_[aDest];
-    if (rSrc != rDest) return;
+    if (rSrc != rDest) return;  // TODO: expand on this
 
     Pathfinder pf;
     pf.setNeighbors([this] (int curNode) {
@@ -413,6 +420,24 @@ void RandomMap::highlightPath(const Point &hSrc, const Point &hDest)
 
     std::cout << "NEW PATH FROM " << aSrc << " TO " << aDest << "\n";
     selectedPath_ = pf.getPathFrom(aSrc);
+}
+
+bool RandomMap::walkable(const Point &hex) const
+{
+    if (mgrid_.offGrid(hex)) {
+        return false;
+    }
+
+    return walkable(mgrid_.aryFromHex(hex));
+}
+
+bool RandomMap::walkable(int mIndex) const
+{
+    if (mIndex < 0 || mIndex >= mgrid_.size()) {
+        return false;
+    }
+
+    return tObst_[tIndex(mIndex)] == 0;
 }
 
 void RandomMap::generateRegions()
@@ -786,11 +811,6 @@ std::vector<int> RandomMap::aryNeighborsSameRegion(int aIndex) const
     }
 
     return nbrs;
-}
-
-bool RandomMap::walkable(int mIndex) const
-{
-    return tObst_[tIndex(mIndex)] == 0;
 }
 
 std::vector<int> RandomMap::getRegionPath(int rBegin, int rEnd) const

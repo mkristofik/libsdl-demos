@@ -62,6 +62,9 @@ public:
 
     void highlightPath(const Point &hSrc, const Point &hDest);
 
+    // Return true if the given hex doesn't have an obstacle.
+    bool walkable(const Point &hex) const;
+
 private:
     // Use a Voronoi diagram to generate a random set of regions.
     void generateRegions();
@@ -95,7 +98,6 @@ private:
     Point sPixel(Sint16 mpx, Sint16 mpy) const;
     Point sPixel(int mIndex) const;
 
-    // Return true if the given hex doesn't have an obstacle.
     bool walkable(int mIndex) const;
 
     // Get all neighbors of a given hex within the same region.
