@@ -23,7 +23,7 @@ results in the screenshot below.
 - Obstacles (trees, mountains, etc.) assigned by a simple [value noise](http://en.wikipedia.org/wiki/Value_noise) algorithm.  Any hex above a threshold gets an obstacle.
 - Multiple obstacle images per terrain type, chosen randomly at map generation time.
 - No islands within each region.  Every open hex in a region is guaranteed to be reachable from every other open hex.
-- Pathfinding using [A\*](http://en.wikipedia.org/wiki/A*) and Dijkstra's Algorithm.
+- Pathfinding using [A\*](http://en.wikipedia.org/wiki/A*) and Dijkstra's Algorithm.  It's fast enough to render small paths in [real time](http://www.youtube.com/watch?v=2PPOoeHhWMw).
 
 ![screenshot](https://raw.github.com/mkristofik/libsdl-demos/master/random_screen.jpg)
 
