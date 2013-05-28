@@ -402,20 +402,21 @@ void RandomMap::highlightPath(const Point &hSrc, const Point &hDest)
     int rDest = regions_[aDest];
     if (rSrc != rDest) return;  // TODO: expand on this
 
-    Pathfinder pf;
-    pf.setNeighbors([this] (int curNode) {
+    auto walkableSameRegion = [this] (int curNode) {
         std::vector<int> ret;
         for (auto n : mgrid_.aryNeighbors(curNode)) {
             if (walkable(n) && regions_[n] == regions_[curNode]) {
                 ret.push_back(n);
             }
         }
-
         return ret;
-    });
+    };
+
+    Pathfinder pf;
+    pf.setNeighbors(walkableSameRegion);
     pf.setGoal(aDest);
-    pf.setEstimate([this, &hDest] (int node) -> int {
-        return hexDist(mgrid_.hexFromAry(node), hDest);
+    pf.setEstimate([this, &hDest] (int n) {
+        return hexDist(mgrid_.hexFromAry(n), hDest);
     });
 
     std::cout << "NEW PATH FROM " << aSrc << " TO " << aDest << "\n";
@@ -424,10 +425,6 @@ void RandomMap::highlightPath(const Point &hSrc, const Point &hDest)
 
 bool RandomMap::walkable(const Point &hex) const
 {
-    if (mgrid_.offGrid(hex)) {
-        return false;
-    }
-
     return walkable(mgrid_.aryFromHex(hex));
 }
 
@@ -707,6 +704,18 @@ void RandomMap::makeWalkable()
 void RandomMap::makeRegionWalkable(std::vector<int> &hexes,
                                    std::vector<char> &visited)
 {
+    // Helper function that returns all neighbors of a hex within the same
+    // region.
+    auto nbrsSameReg = [this] (int aIndex) {
+        std::vector<int> nbrs;
+        for (auto n : mgrid_.aryNeighbors(aIndex)) {
+            if (regions_[n] == regions_[aIndex]) {
+                nbrs.push_back(n);
+            }
+        }
+        return nbrs;
+    };
+
     // Breadth-first search from the first walkable hex in each region.  If
     // the regions are open, we should reach every hex this way.
     std::queue<int> q;
@@ -714,7 +723,7 @@ void RandomMap::makeRegionWalkable(std::vector<int> &hexes,
     while (!q.empty()) {
         auto hex = q.front();
         visited[hex] = 1;
-        for (auto n : aryNeighborsSameRegion(hex)) {
+        for (auto n : nbrsSameReg(hex)) {
             if (walkable(n) && visited[n] == 0) {
                 q.push(n);
             }
@@ -730,7 +739,7 @@ void RandomMap::makeRegionWalkable(std::vector<int> &hexes,
     // Starting from a hex we couldn't reach, find a path to the nearest
     // walkable hex already visited in this region.
     Pathfinder pf;
-    pf.setNeighbors([this] (int node) { return aryNeighborsSameRegion(node); });
+    pf.setNeighbors(nbrsSameReg);
     pf.setGoal([this, &visited] (int node) {
         return visited[node] == 1 && walkable(node);
     });
@@ -795,22 +804,6 @@ Point RandomMap::sPixel(Sint16 mpx, Sint16 mpy) const
 Point RandomMap::sPixel(int mIndex) const
 {
     return sPixelFromHex(mgrid_.hexFromAry(mIndex));
-}
-
-std::vector<int> RandomMap::aryNeighborsSameRegion(int aIndex) const
-{
-    assert(aIndex >= 0 && aIndex < mgrid_.size());
-
-    auto myReg = regions_[aIndex];
-    std::vector<int> nbrs;
-
-    for (auto n : mgrid_.aryNeighbors(aIndex)) {
-        if (regions_[n] == myReg) {
-            nbrs.push_back(n);
-        }
-    }
-
-    return nbrs;
 }
 
 std::vector<int> RandomMap::getRegionPath(int rBegin, int rEnd) const

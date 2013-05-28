@@ -100,9 +100,6 @@ private:
 
     bool walkable(int mIndex) const;
 
-    // Get all neighbors of a given hex within the same region.
-    std::vector<int> aryNeighborsSameRegion(int aIndex) const;
-
     // Find shortest number of hops between regions.  Intended as a high-level
     // first pass at generating paths between distant hexes.
     std::vector<int> getRegionPath(int rBegin, int rEnd) const;
