@@ -383,14 +383,14 @@ Point RandomMap::getSelectedHex() const
 void RandomMap::highlightPath(const Point &hSrc, const Point &hDest)
 {
     if (hSrc == hInvalid || hDest == hInvalid) {
-        selectedPath_ = {};
+        selectedPath_.clear();
         return;
     }
 
-    int aSrc = mgrid_.aryFromHex(hSrc);
-    int aDest = mgrid_.aryFromHex(hDest);
+    auto aSrc = mgrid_.aryFromHex(hSrc);
+    auto aDest = mgrid_.aryFromHex(hDest);
     if (!walkable(aSrc) || !walkable(aDest)) {
-       selectedPath_ = {};
+       selectedPath_.clear();
        return;
     }
     if (aSrc == aDest) {
@@ -398,29 +398,44 @@ void RandomMap::highlightPath(const Point &hSrc, const Point &hDest)
         return;
     }
 
-    int rSrc = regions_[aSrc];
-    int rDest = regions_[aDest];
-    if (rSrc != rDest) return;  // TODO: expand on this
+    auto rSrc = regions_[aSrc];
+    auto rDest = regions_[aDest];
+    if (rSrc == rDest) {
+        selectedPath_ = getPathSameReg(aSrc, aDest);
+    }
+    else {
+        selectedPath_.clear();
 
-    auto walkableSameRegion = [this] (int curNode) {
-        std::vector<int> ret;
-        for (auto n : mgrid_.aryNeighbors(curNode)) {
-            if (walkable(n) && regions_[n] == regions_[curNode]) {
-                ret.push_back(n);
+        // Get the region-level path, start looking for adjacent region.
+        auto regPath = getRegionPath(rSrc, rDest);
+        if (regPath.empty()) return;
+
+        // We know at this point we can reach the destination hex because all
+        // walkable hexes are reachable within each region.
+
+        // Build up the path one region at a time.
+        auto nextReg = std::begin(regPath) + 1;
+        auto pathSoFar = getPathToReg(aSrc, *nextReg);
+        ++nextReg;
+        while (nextReg != std::end(regPath)) {
+            auto startNextLeg = pathSoFar.back();
+            auto nextLeg = getPathToReg(startNextLeg, *nextReg);
+            if (nextLeg.size() > 1) {
+                pathSoFar.insert(std::end(pathSoFar),
+                                 std::begin(nextLeg) + 1, std::end(nextLeg));
             }
+            ++nextReg;
         }
-        return ret;
-    };
 
-    Pathfinder pf;
-    pf.setNeighbors(walkableSameRegion);
-    pf.setGoal(aDest);
-    pf.setEstimate([this, &hDest] (int n) {
-        return hexDist(mgrid_.hexFromAry(n), hDest);
-    });
-
-    std::cout << "NEW PATH FROM " << aSrc << " TO " << aDest << "\n";
-    selectedPath_ = pf.getPathFrom(aSrc);
+        // We've reached the destination region.  Now we have to complete the
+        // path to the target hex.
+        auto finalLeg = getPathSameReg(pathSoFar.back(), aDest);
+        if (finalLeg.size() > 1) {
+            pathSoFar.insert(std::end(pathSoFar),
+                             std::begin(finalLeg) + 1, std::end(finalLeg));
+        }
+        selectedPath_ = pathSoFar;
+    }
 }
 
 bool RandomMap::walkable(const Point &hex) const
@@ -812,4 +827,57 @@ std::vector<int> RandomMap::getRegionPath(int rBegin, int rEnd) const
     pf.setNeighbors([this] (int n) { return regionGraphWalk_[n]; });
     pf.setGoal(rEnd);
     return pf.getPathFrom(rBegin);
+}
+
+std::vector<int> RandomMap::getPathSameReg(int aSrc, int aDest) const
+{
+    assert(regions_[aSrc] == regions_[aDest]);
+
+    auto walkableSameRegion = [this] (int curNode) {
+        std::vector<int> ret;
+        for (auto n : mgrid_.aryNeighbors(curNode)) {
+            if (walkable(n) && regions_[n] == regions_[curNode]) {
+                ret.push_back(n);
+            }
+        }
+        return ret;
+    };
+
+    auto hDest = mgrid_.hexFromAry(aDest);
+
+    Pathfinder pf;
+    pf.setNeighbors(walkableSameRegion);
+    pf.setGoal(aDest);
+    pf.setEstimate([this, &hDest] (int n) {
+        return hexDist(mgrid_.hexFromAry(n), hDest);
+    });
+
+    std::cout << "NEW PATH FROM " << aSrc << " TO " << aDest << "\n";
+    return pf.getPathFrom(aSrc);
+}
+
+std::vector<int> RandomMap::getPathToReg(int aSrc, int rDest) const
+{
+    auto rSrc = regions_[aSrc];
+    assert(rSrc != rDest && contains(regionGraphWalk_[rSrc], rDest));
+
+    auto sameOrAdjReg = [this, rDest] (int curNode) {
+        std::vector<int> ret;
+        for (auto n : mgrid_.aryNeighbors(curNode)) {
+            if (walkable(n) &&
+                (regions_[n] == regions_[curNode] || regions_[n] == rDest))
+            {
+                ret.push_back(n);
+            }
+        }
+        return ret;
+    };
+
+    Pathfinder pf;
+    pf.setNeighbors(sameOrAdjReg);
+    pf.setGoal([this, rDest] (int n) { return regions_[n] == rDest; });
+
+    std::cout << "NEW PATH FROM " << aSrc << " (REGION " << regions_[aSrc] <<
+       ") TO REGION " << rDest << "\n";
+    return pf.getPathFrom(aSrc);
 }
