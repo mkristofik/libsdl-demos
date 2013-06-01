@@ -185,11 +185,6 @@ RandomMap::RandomMap(Sint16 hWidth, Sint16 hHeight, const SDL_Rect &pDisplayArea
     buildRegionGraph();
     assignTerrain();
     setObstacleImages();
-
-    // XXX
-    auto path = getRegionPath(0, 8);
-    copy(std::begin(path), std::end(path), std::ostream_iterator<int>(std::cout, ", "));
-    std::cout << '\n';
 }
 
 Sint16 RandomMap::pWidth() const
@@ -400,24 +395,25 @@ void RandomMap::highlightPath(const Point &hSrc, const Point &hDest)
 
     auto rSrc = regions_[aSrc];
     auto rDest = regions_[aDest];
-    if (rSrc == rDest) {
-        selectedPath_ = getPathSameReg(aSrc, aDest);
+
+    // Get the region-level path, start looking for adjacent region.
+    auto regPath = getRegionPath(rSrc, rDest);
+    if (regPath.empty()) return;
+
+    // We know at this point we can reach the destination hex because all
+    // walkable hexes are reachable within each region.
+
+    if (regPath.size() <= 2) {
+        selectedPath_ = getPath(aSrc, aDest);
     }
     else {
         selectedPath_.clear();
-
-        // Get the region-level path, start looking for adjacent region.
-        auto regPath = getRegionPath(rSrc, rDest);
-        if (regPath.empty()) return;
-
-        // We know at this point we can reach the destination hex because all
-        // walkable hexes are reachable within each region.
 
         // Build up the path one region at a time.
         auto nextReg = std::begin(regPath) + 1;
         auto pathSoFar = getPathToReg(aSrc, *nextReg);
         ++nextReg;
-        while (nextReg != std::end(regPath)) {
+        while (nextReg != std::end(regPath) - 1) {
             auto startNextLeg = pathSoFar.back();
             auto nextLeg = getPathToReg(startNextLeg, *nextReg);
             if (nextLeg.size() > 1) {
@@ -427,9 +423,9 @@ void RandomMap::highlightPath(const Point &hSrc, const Point &hDest)
             ++nextReg;
         }
 
-        // We've reached the destination region.  Now we have to complete the
+        // We've reached the next to last region.  Now we have to complete the
         // path to the target hex.
-        auto finalLeg = getPathSameReg(pathSoFar.back(), aDest);
+        auto finalLeg = getPath(pathSoFar.back(), aDest);
         if (finalLeg.size() > 1) {
             pathSoFar.insert(std::end(pathSoFar),
                              std::begin(finalLeg) + 1, std::end(finalLeg));
@@ -829,30 +825,36 @@ std::vector<int> RandomMap::getRegionPath(int rBegin, int rEnd) const
     return pf.getPathFrom(rBegin);
 }
 
-std::vector<int> RandomMap::getPathSameReg(int aSrc, int aDest) const
+std::vector<int> RandomMap::getPath(int aSrc, int aDest) const
 {
-    assert(regions_[aSrc] == regions_[aDest]);
+    auto rSrc = regions_[aSrc];
+    auto rDest = regions_[aDest];
+    assert(rSrc == rDest || contains(regionGraphWalk_[rSrc], rDest));
 
-    auto walkableSameRegion = [this] (int curNode) {
+    auto stayInDestReg = [this, rSrc, rDest] (int curNode) {
         std::vector<int> ret;
         for (auto n : mgrid_.aryNeighbors(curNode)) {
-            if (walkable(n) && regions_[n] == regions_[curNode]) {
+            if (!walkable(n)) continue;
+
+            // If we've reached the destination region, stay there.
+            if (regions_[curNode] == rDest && regions_[n] == rDest) {
+                ret.push_back(n);
+            }
+            // Otherwise, the source and destination regions are fair game.
+            else if (regions_[curNode] == rSrc &&
+                     (regions_[n] == rSrc || regions_[n] == rDest)) {
                 ret.push_back(n);
             }
         }
         return ret;
     };
 
-    auto hDest = mgrid_.hexFromAry(aDest);
-
     Pathfinder pf;
-    pf.setNeighbors(walkableSameRegion);
+    pf.setNeighbors(stayInDestReg);
     pf.setGoal(aDest);
-    pf.setEstimate([this, &hDest] (int n) {
-        return hexDist(mgrid_.hexFromAry(n), hDest);
-    });
 
-    std::cout << "NEW PATH FROM " << aSrc << " TO " << aDest << "\n";
+    std::cout << "NEW PATH FROM " << aSrc << " (REGION " << rSrc << ") TO " <<
+        rDest << "(REGION " << rDest << ")\n";
     return pf.getPathFrom(aSrc);
 }
 

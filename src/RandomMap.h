@@ -104,8 +104,9 @@ private:
     // first pass at generating paths between distant hexes.
     std::vector<int> getRegionPath(int rBegin, int rEnd) const;
 
-    // Return the shortest path between two hexes in the same region.
-    std::vector<int> getPathSameReg(int aSrc, int aDest) const;
+    // Return the shortest path between two hexes in the same region or an
+    // adjacent region.
+    std::vector<int> getPath(int aSrc, int aDest) const;
 
     // Return a path to the nearest hex in an adjacent region.
     std::vector<int> getPathToReg(int aSrc, int rDest) const;
