@@ -20,9 +20,12 @@
 
 using SdlSurface = std::shared_ptr<SDL_Surface>;
 
-// Handle to the screen (duh).  Must fill this in with SDL_SetVideoMode before
-// any other SDL drawing functions will work.
 extern SDL_Surface *screen;
+
+// Must call this before any other SDL functions will work.  There is no
+// recovery if this returns false (you should exit the program).
+bool sdlInit(Sint16 winWidth, Sint16 winHeight, const char *iconPath,
+             const char *caption);
 
 // Like std::make_shared, but with SDL_Surface.
 SdlSurface make_surface(SDL_Surface *surf);

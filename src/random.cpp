@@ -164,33 +164,9 @@ void handleMouseUp(const SDL_MouseButtonEvent &event)
 
 extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
 {
-    if (SDL_Init(SDL_INIT_VIDEO) == -1) {
-        std::cerr << "Error initializing SDL: " << SDL_GetError();
+    if (!sdlInit(1112, 704, "../img/icon.png", "Random Map Test")) {
         return EXIT_FAILURE;
     }
-    atexit(SDL_Quit);
-
-    if (IMG_Init(IMG_INIT_PNG) < 0) {
-        std::cerr << "Error initializing SDL_image: " << IMG_GetError();
-        return EXIT_FAILURE;
-    }
-    atexit(IMG_Quit);
-
-    // Have to do this prior to SetVideoMode.
-    auto icon = make_surface(IMG_Load("../img/icon.png"));
-    if (icon != nullptr) {
-        SDL_WM_SetIcon(icon.get(), nullptr);
-    }
-    else {
-        std::cerr << "Warning: error loading icon file: " << IMG_GetError();
-    }
-
-    screen = SDL_SetVideoMode(1112, 704, 0, SDL_SWSURFACE);
-    if (screen == nullptr) {
-        std::cerr << "Error setting video mode: " << SDL_GetError();
-        return EXIT_FAILURE;    
-    }
-    SDL_WM_SetCaption("Random Map Test", "");
 
     rmap = make_unique<RandomMap>(32, 18, mapArea);
     mini = make_unique<Minimap>(*rmap, minimapArea);

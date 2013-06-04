@@ -42,6 +42,40 @@ namespace
     }
 }
 
+bool sdlInit(Sint16 winWidth, Sint16 winHeight, const char *iconPath,
+             const char *caption)
+{
+    if (SDL_Init(SDL_INIT_VIDEO) == -1) {
+        std::cerr << "Error initializing SDL: " << SDL_GetError();
+        return false;
+    }
+    atexit(SDL_Quit);
+
+    if (IMG_Init(IMG_INIT_PNG) < 0) {
+        std::cerr << "Error initializing SDL_image: " << IMG_GetError();
+        return false;
+    }
+    atexit(IMG_Quit);
+
+    // Have to do this prior to SetVideoMode.
+    auto icon = make_surface(IMG_Load(iconPath));
+    if (icon != nullptr) {
+        SDL_WM_SetIcon(icon.get(), nullptr);
+    }
+    else {
+        std::cerr << "Warning: error loading icon file: " << IMG_GetError();
+    }
+
+    screen = SDL_SetVideoMode(winWidth, winHeight, 0, SDL_SWSURFACE);
+    if (screen == nullptr) {
+        std::cerr << "Error setting video mode: " << SDL_GetError();
+        return false;
+    }
+
+    SDL_WM_SetCaption(caption, "");
+    return true;
+}
+
 SdlSurface make_surface(SDL_Surface *surf)
 {
     return SdlSurface(surf, SDL_FreeSurface);
