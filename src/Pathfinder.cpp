@@ -15,8 +15,6 @@
 #include <memory>
 #include <unordered_map>
 
-#include <iostream> // XXX
-
 struct PathNode
 {
     int prev;
@@ -37,10 +35,10 @@ namespace {
 }
 
 Pathfinder::Pathfinder()
-    : neighbors_([] (int) { return std::vector<int>(); }),
-    goal_([] (int) { return false; }),
-    stepCost_([] (int, int) { return 1; }),
-    estimate_([] (int) { return 0; })
+    : neighbors_{[] (int) { return std::vector<int>(); }},
+    goal_{[] (int) { return false; }},
+    stepCost_{[] (int, int) { return 1; }},
+    estimate_{[] (int) { return 0; }}
 {
 }
 
@@ -96,25 +94,21 @@ std::vector<int> Pathfinder::getPathFrom(int start) const
         auto loc = open.front();
         pop_heap(std::begin(open), std::end(open), orderByCost);
         open.pop_back();
-        std::cout << "Considering node " << loc << " cost " << nodes[loc]->estTotalCost << std::endl; // XXX
         if (goal_(loc)) {
             goalLoc = loc;
             goalNode = nodes[loc];
-            std::cout << "Path found!" << std::endl;  // XXX
             break;
         }
 
         auto &curNode = nodes[loc];
         curNode->visited = true;
         for (auto n : neighbors_(loc)) {
-            std::cout << "Looking at neighbor " << n << "..."; // XXX
             auto nIter = nodes.find(n);
             auto step = stepCost_(loc, n);
 
             if (nIter != nodes.end()) {
                 auto &nNode = nIter->second;
                 if (nNode->visited) {
-                    std::cout << "Was visited, ignoring" << std::endl;  // XXX
                     continue;
                 }
 
@@ -125,10 +119,6 @@ std::vector<int> Pathfinder::getPathFrom(int start) const
                     nNode->costSoFar = curNode->costSoFar + step;
                     nNode->estTotalCost = nNode->costSoFar + estimate_(n);
                     make_heap(std::begin(open), std::end(open), orderByCost);
-                    std::cout << "Got better path cost so far " << nNode->costSoFar << std::endl;  // XXX
-                }
-                else {
-                    std::cout << "Worse path, do nothing" << std::endl;  // XXX
                 }
             }
             else {
@@ -137,13 +127,11 @@ std::vector<int> Pathfinder::getPathFrom(int start) const
                     curNode->costSoFar + step + estimate_(n)));
                 open.push_back(n);
                 push_heap(std::begin(open), std::end(open), orderByCost);
-                std::cout << "New node cost " << nodes[n]->estTotalCost << std::endl;  // XXX
             }
         }
     }
 
     if (!goalNode) {
-        std::cout << "Failed!" << std::endl;
         return {};
     }
 
