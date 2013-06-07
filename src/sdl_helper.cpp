@@ -57,6 +57,12 @@ bool sdlInit(Sint16 winWidth, Sint16 winHeight, const char *iconPath,
     }
     atexit(IMG_Quit);
 
+    if (TTF_Init() < 0) {
+        std::cerr << "Error initializing SDL_ttf: " << TTF_GetError();
+        return EXIT_FAILURE;
+    }
+    atexit(TTF_Quit);
+
     // Have to do this prior to SetVideoMode.
     auto icon = make_surface(IMG_Load(iconPath));
     if (icon != nullptr) {
@@ -152,6 +158,16 @@ SdlSurface sdlLoadImage(const char *filename)
     return sdlDisplayFormat(img);
 }
 
+SdlFont sdlLoadFont(const char *filename, int ptSize)
+{
+    SdlFont font(TTF_OpenFont(filename, ptSize), TTF_CloseFont);
+    if (!font) {
+        std::cerr << "Error loading font " << filename << " size " << ptSize
+            << "\n    " << TTF_GetError() << '\n';
+    }
+    return font;
+}
+
 void sdlDashedLineH(Sint16 px, Sint16 py, Uint16 len, Uint32 color)
 {
     assert(screen != nullptr);
@@ -236,4 +252,29 @@ Dir8 nearEdge(Sint16 x, Sint16 y, const SDL_Rect &rect)
     }
 
     return Dir8::None;
+}
+
+SDL_Rect sdlGetBounds(const SdlSurface &surf, Sint16 x, Sint16 y)
+{
+    return {x, y, static_cast<Uint16>(surf->w), static_cast<Uint16>(surf->h)};
+}
+
+void sdlDrawText(const SdlFont &font, const char *txt, Sint16 x, Sint16 y,
+                 const SDL_Color &color, Justify j)
+{
+    SdlSurface textImg = make_surface(TTF_RenderText_Blended(font.get(), txt,
+                                                             color));
+    if (textImg == nullptr) {
+        std::cerr << "Warning: error rendering blended text: " << TTF_GetError();
+        return;
+    }
+
+    if (j == Justify::CENTER) {
+        x -= textImg->w / 2;
+    }
+    else if (j == Justify::RIGHT) {
+        x -= textImg->w;
+    }
+
+    sdlBlit(textImg, x, y);
 }

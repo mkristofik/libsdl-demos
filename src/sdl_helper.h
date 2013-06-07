@@ -15,10 +15,12 @@
 
 #include "SDL.h"
 #include "SDL_image.h"
+#include "SDL_ttf.h"
 #include <memory>
 #include <utility>
 
 using SdlSurface = std::shared_ptr<SDL_Surface>;
+using SdlFont = std::unique_ptr<TTF_Font, void(*)(TTF_Font *)>;
 
 extern SDL_Surface *screen;
 
@@ -45,8 +47,9 @@ void sdlBlit(const SdlSurface &surf, Sint16 px, Sint16 py);
 // Clear the given region of the screen.
 void sdlClear(SDL_Rect region);
 
-// Load an image from disk.  Returns a null surface on failure.
+// Load a resource from disk.  Returns null on failure.
 SdlSurface sdlLoadImage(const char *filename);
+SdlFont sdlLoadFont(const char *filename, int ptSize);
 
 // Draw a dashed line to the screen starting at (px,py).
 void sdlDashedLineH(Sint16 px, Sint16 py, Uint16 len, Uint32 color);
@@ -57,5 +60,13 @@ bool insideRect(Sint16 x, Sint16 y, const SDL_Rect &rect);
 std::pair<double, double> rectPct(Sint16 x, Sint16 y, const SDL_Rect &rect);
 enum class Dir8 {None = -1, N, NE, E, SE, S, SW, W, NW};
 Dir8 nearEdge(Sint16 x, Sint16 y, const SDL_Rect &rect);
+
+// Return the bounding box for the given image.
+SDL_Rect sdlGetBounds(const SdlSurface &surf, Sint16 x, Sint16 y);
+
+// Draw text to the screen.
+enum class Justify {LEFT, CENTER, RIGHT};
+void sdlDrawText(const SdlFont &font, const char *txt, Sint16 x, Sint16 y,
+                 const SDL_Color &color, Justify j = Justify::LEFT);
 
 #endif
