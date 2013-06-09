@@ -45,7 +45,7 @@ namespace
 bool sdlInit(Sint16 winWidth, Sint16 winHeight, const char *iconPath,
              const char *caption)
 {
-    if (SDL_Init(SDL_INIT_VIDEO) == -1) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) == -1) {
         std::cerr << "Error initializing SDL: " << SDL_GetError();
         return false;
     }
@@ -59,9 +59,21 @@ bool sdlInit(Sint16 winWidth, Sint16 winHeight, const char *iconPath,
 
     if (TTF_Init() < 0) {
         std::cerr << "Error initializing SDL_ttf: " << TTF_GetError();
-        return EXIT_FAILURE;
+        return false;
     }
     atexit(TTF_Quit);
+
+    if (Mix_Init(MIX_INIT_MP3 | MIX_INIT_OGG) < 0) {
+        std::cerr << "Warning: error initializing SDL_mixer: " << Mix_GetError();
+        // not a fatal error
+    }
+    atexit(Mix_Quit);
+
+    if (Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 4096) < 0) {
+        std::cerr << "Warning: error opening SDL_mixer: " << Mix_GetError();
+        // not a fatal error
+    }
+    atexit(Mix_CloseAudio);
 
     // Have to do this prior to SetVideoMode.
     auto icon = make_surface(IMG_Load(iconPath));
@@ -166,6 +178,16 @@ SdlFont sdlLoadFont(const char *filename, int ptSize)
             << "\n    " << TTF_GetError() << '\n';
     }
     return font;
+}
+
+SdlMusic sdlLoadMusic(const char *filename)
+{
+    SdlMusic music(Mix_LoadMUS(filename), Mix_FreeMusic);
+    if (!music) {
+        std::cerr << "Error loading music " << filename << "\n    "
+            << Mix_GetError() << '\n';
+    }
+    return music;
 }
 
 void sdlDashedLineH(Sint16 px, Sint16 py, Uint16 len, Uint32 color)

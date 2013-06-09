@@ -22,23 +22,28 @@ namespace
     SDL_Rect playButton;
     SDL_Rect nextTrack;
     SDL_Rect prevTrack;
-    bool isPlaying = false;
 }
 
-void handleMouseUp(const SDL_MouseButtonEvent &event)
+void handleMouseUp(const SDL_MouseButtonEvent &event, Mix_Music *music)
 {
     if (event.button == SDL_BUTTON_LEFT &&
         insideRect(event.x, event.y, playButton))
     {
-        if (isPlaying) {
-            sdlBlit(play, playButton.x, playButton.y);
-            isPlaying = false;
+        if (!Mix_PlayingMusic()) {  // have we started playing music at all
+            Mix_PlayMusic(music, 0);
+            Mix_VolumeMusic(MIX_MAX_VOLUME / 2);
+            sdlBlit(pause, playButton.x, playButton.y);
         }
         else {
-            sdlBlit(pause, playButton.x, playButton.y);
-            isPlaying = true;
+            if (Mix_PausedMusic()) {
+                sdlBlit(pause, playButton.x, playButton.y);
+                Mix_ResumeMusic();
+            }
+            else {
+                sdlBlit(play, playButton.x, playButton.y);
+                Mix_PauseMusic();
+            }
         }
-
     }
 }
 
@@ -61,27 +66,23 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     prevTrack = sdlGetBounds(prev, 90, 130);
     sdlBlit(prev, prevTrack.x, prevTrack.y);
 
-    // Draw the slider bar and current track position.
-    auto gray = SDL_MapRGB(screen->format, 195, 195, 195);
-    auto trackbar = SDL_Rect{15, 113, 290, 3};
-    SDL_FillRect(screen, &trackbar, gray);
-    auto slider = sdlLoadImage("../img/button-slider.png");
-    sdlBlit(slider, 10, 108);
-
     auto font = sdlLoadFont("../DejaVuSans.ttf", 12);
-    auto white = SDL_Color{255, 255, 255};
-    sdlDrawText(font, "0:00 / 0:00", 310, 130, white, Justify::RIGHT);
 
     SDL_UpdateRect(screen, 0, 0, 0, 0);
+
+    SdlMusic music = sdlLoadMusic("../music/wesnoth.ogg");
+    // note: can't allocate this at global scope because it has to be freed
+    // before closing down SDL_Mixer.
 
     bool isDone = false;
     SDL_Event event;
     while (!isDone) {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_MOUSEBUTTONUP) {
-                handleMouseUp(event.button);
+                handleMouseUp(event.button, music.get());
             }
             else if (event.type == SDL_QUIT) {
+                Mix_HaltMusic();
                 isDone = true;
             }
         }

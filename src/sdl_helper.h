@@ -15,12 +15,14 @@
 
 #include "SDL.h"
 #include "SDL_image.h"
+#include "SDL_mixer.h"
 #include "SDL_ttf.h"
 #include <memory>
 #include <utility>
 
 using SdlSurface = std::shared_ptr<SDL_Surface>;
 using SdlFont = std::unique_ptr<TTF_Font, void(*)(TTF_Font *)>;
+using SdlMusic = std::shared_ptr<Mix_Music>;
 
 extern SDL_Surface *screen;
 
@@ -50,6 +52,7 @@ void sdlClear(SDL_Rect region);
 // Load a resource from disk.  Returns null on failure.
 SdlSurface sdlLoadImage(const char *filename);
 SdlFont sdlLoadFont(const char *filename, int ptSize);
+SdlMusic sdlLoadMusic(const char *filename);
 
 // Draw a dashed line to the screen starting at (px,py).
 void sdlDashedLineH(Sint16 px, Sint16 py, Uint16 len, Uint32 color);
