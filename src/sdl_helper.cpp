@@ -281,7 +281,7 @@ SDL_Rect sdlGetBounds(const SdlSurface &surf, Sint16 x, Sint16 y)
     return {x, y, static_cast<Uint16>(surf->w), static_cast<Uint16>(surf->h)};
 }
 
-void sdlDrawText(const SdlFont &font, const char *txt, Sint16 x, Sint16 y,
+void sdlDrawText(const SdlFont &font, const char *txt, SDL_Rect pos,
                  const SDL_Color &color, Justify j)
 {
     SdlSurface textImg = make_surface(TTF_RenderText_Blended(font.get(), txt,
@@ -292,11 +292,16 @@ void sdlDrawText(const SdlFont &font, const char *txt, Sint16 x, Sint16 y,
     }
 
     if (j == Justify::CENTER) {
-        x -= textImg->w / 2;
+        pos.x -= textImg->w / 2;
     }
     else if (j == Justify::RIGHT) {
-        x -= textImg->w;
+        pos.x -= textImg->w;
     }
 
-    sdlBlit(textImg, x, y);
+    SDL_Rect temp;
+    SDL_GetClipRect(screen, &temp);
+    SDL_SetClipRect(screen, &pos);
+    sdlClear(pos);
+    sdlBlit(textImg, pos.x, pos.y);
+    SDL_SetClipRect(screen, &temp);
 }

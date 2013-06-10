@@ -35,7 +35,7 @@ void handleMouseUp(const SDL_MouseButtonEvent &event,
 
 extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
 {
-    if (!sdlInit(320, 180, "../img/icon.png", "Music Test")) {
+    if (!sdlInit(250, 140, "../img/icon.png", "Music Test")) {
         return EXIT_FAILURE;
     }
 
@@ -45,12 +45,17 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     SdlSurface prev = sdlLoadImage("../img/button-prev.png");
 
     // Define the control buttons.
-    GuiButton playButton{140, 130, play};
-    GuiButton nextTrack{190, 130, next};
-    GuiButton prevTrack{90, 130, prev};
+    GuiButton playButton{105, 90, play};
+    GuiButton nextTrack{155, 90, next};
+    GuiButton prevTrack{55, 90, prev};
     std::vector<GuiButton *> buttons = {&playButton, &nextTrack, &prevTrack};
 
     auto font = sdlLoadFont("../DejaVuSans.ttf", 12);
+    auto white = SDL_Color{255, 255, 255, 0};
+    sdlDrawText(font, "Now playing:", SDL_Rect{10, 10, 230, 20}, white);
+
+    auto trackTitle = SDL_Rect{10, 30, 230, 20};
+    sdlDrawText(font, "Nothing", trackTitle, white);
 
     SDL_UpdateRect(screen, 0, 0, 0, 0);
 
@@ -64,6 +69,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
             Mix_PlayMusic(music.get(), 0);
             Mix_VolumeMusic(MIX_MAX_VOLUME / 2);
             playButton.setImage(pause);
+            sdlDrawText(font, "../music/wesnoth.ogg", trackTitle, white);
         }
         else {
             if (Mix_PausedMusic()) {

@@ -34,5 +34,5 @@ private:
     SDL_Rect displayArea_;
     std::function<void ()> action_;
 };
-    
+
 #endif

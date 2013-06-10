@@ -69,7 +69,7 @@ SDL_Rect sdlGetBounds(const SdlSurface &surf, Sint16 x, Sint16 y);
 
 // Draw text to the screen.
 enum class Justify {LEFT, CENTER, RIGHT};
-void sdlDrawText(const SdlFont &font, const char *txt, Sint16 x, Sint16 y,
+void sdlDrawText(const SdlFont &font, const char *txt, SDL_Rect pos,
                  const SDL_Color &color, Justify j = Justify::LEFT);
 
 #endif

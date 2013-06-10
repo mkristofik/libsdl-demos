@@ -13,7 +13,7 @@
 #include "gui.h"
 
 GuiButton::GuiButton(Sint16 x, Sint16 y, SdlSurface img)
-    : image_{img},
+    : image_{std::move(img)},
     displayArea_(sdlGetBounds(image_, x, y)),
     action_{[] {}}
 {
