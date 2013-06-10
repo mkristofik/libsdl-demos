@@ -10,39 +10,25 @@
  
     See the COPYING.txt file for more details.
 */
+#include "gui.h"
 #include "sdl_helper.h"
 #include <iostream>
+#include <vector>
 
 namespace
 {
-    SdlSurface play;
-    SdlSurface pause;
-    SdlSurface next;
-    SdlSurface prev;
-    SDL_Rect playButton;
-    SDL_Rect nextTrack;
-    SDL_Rect prevTrack;
 }
 
-void handleMouseUp(const SDL_MouseButtonEvent &event, Mix_Music *music)
+void handleMouseUp(const SDL_MouseButtonEvent &event,
+                   std::vector<GuiButton *> buttons)
 {
-    if (event.button == SDL_BUTTON_LEFT &&
-        insideRect(event.x, event.y, playButton))
-    {
-        if (!Mix_PlayingMusic()) {  // have we started playing music at all
-            Mix_PlayMusic(music, 0);
-            Mix_VolumeMusic(MIX_MAX_VOLUME / 2);
-            sdlBlit(pause, playButton.x, playButton.y);
-        }
-        else {
-            if (Mix_PausedMusic()) {
-                sdlBlit(pause, playButton.x, playButton.y);
-                Mix_ResumeMusic();
-            }
-            else {
-                sdlBlit(play, playButton.x, playButton.y);
-                Mix_PauseMusic();
-            }
+    if (event.button != SDL_BUTTON_LEFT) {
+        return;
+    }
+
+    for (auto &b : buttons) {
+        if (insideRect(event.x, event.y, b->getDisplayArea())) {
+            b->click();
         }
     }
 }
@@ -53,33 +39,50 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
         return EXIT_FAILURE;
     }
 
-    play = sdlLoadImage("../img/button-play.png");
-    pause = sdlLoadImage("../img/button-pause.png");
-    next = sdlLoadImage("../img/button-next.png");
-    prev = sdlLoadImage("../img/button-prev.png");
+    SdlSurface play = sdlLoadImage("../img/button-play.png");
+    SdlSurface pause = sdlLoadImage("../img/button-pause.png");
+    SdlSurface next = sdlLoadImage("../img/button-next.png");
+    SdlSurface prev = sdlLoadImage("../img/button-prev.png");
 
     // Define the control buttons.
-    playButton = sdlGetBounds(play, 140, 130);
-    sdlBlit(play, playButton.x, playButton.y);
-    nextTrack = sdlGetBounds(next, 190, 130);
-    sdlBlit(next, nextTrack.x, nextTrack.y);
-    prevTrack = sdlGetBounds(prev, 90, 130);
-    sdlBlit(prev, prevTrack.x, prevTrack.y);
+    GuiButton playButton{140, 130, play};
+    GuiButton nextTrack{190, 130, next};
+    GuiButton prevTrack{90, 130, prev};
+    std::vector<GuiButton *> buttons = {&playButton, &nextTrack, &prevTrack};
 
     auto font = sdlLoadFont("../DejaVuSans.ttf", 12);
 
     SDL_UpdateRect(screen, 0, 0, 0, 0);
 
+    // TODO: load everything in the music directory, random shuffle.
     SdlMusic music = sdlLoadMusic("../music/wesnoth.ogg");
     // note: can't allocate this at global scope because it has to be freed
     // before closing down SDL_Mixer.
+
+    playButton.onClick([&] {
+        if (!Mix_PlayingMusic()) {  // have we started playing music at all
+            Mix_PlayMusic(music.get(), 0);
+            Mix_VolumeMusic(MIX_MAX_VOLUME / 2);
+            playButton.setImage(pause);
+        }
+        else {
+            if (Mix_PausedMusic()) {
+                playButton.setImage(pause);
+                Mix_ResumeMusic();
+            }
+            else {
+                playButton.setImage(play);
+                Mix_PauseMusic();
+            }
+        }
+    });
 
     bool isDone = false;
     SDL_Event event;
     while (!isDone) {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_MOUSEBUTTONUP) {
-                handleMouseUp(event.button, music.get());
+                handleMouseUp(event.button, buttons);
             }
             else if (event.type == SDL_QUIT) {
                 Mix_HaltMusic();

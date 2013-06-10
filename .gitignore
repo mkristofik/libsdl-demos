@@ -1,6 +1,7 @@
 bin/
 build/
 html/
+music/
 *.ttf
 *.swp
 random_video.avi

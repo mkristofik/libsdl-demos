@@ -31,7 +31,7 @@ add_executable(${EXE2} ${SRC2})
 target_link_libraries(${EXE2} mingw32 SDLmain SDL SDL_image SDL_ttf SDL_mixer)
 
 set(EXE3 jukebox)
-set(SRC3 jukebox.cpp sdl_helper.cpp)
+set(SRC3 jukebox.cpp gui.cpp sdl_helper.cpp)
 add_executable(${EXE3} ${SRC3})
 target_link_libraries(${EXE3} mingw32 SDLmain SDL SDL_image SDL_ttf SDL_mixer)
 
