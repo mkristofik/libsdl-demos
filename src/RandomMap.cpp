@@ -226,43 +226,39 @@ void RandomMap::draw(Sint16 mpx, Sint16 mpy)
     seHex.first = std::min<Sint16>(seHex.first + 1, mgrid_.width());
     seHex.second = std::min<Sint16>(seHex.second + 1, mgrid_.height());
 
-    // TODO: RAII this, kinda like ScopeGuard11.  I expect it to be common.
-    SDL_Rect temp;
-    SDL_GetClipRect(screen, &temp);
-    SDL_SetClipRect(screen, &pDisplayArea_);
+    sdlSetClipRect(pDisplayArea_, [this, &nwHex, &seHex]
+    {
+        sdlClear(pDisplayArea_);
 
-    sdlClear(pDisplayArea_);
-
-    for (Sint16 hx = nwHex.first; hx <= seHex.first; ++hx) {
-        for (Sint16 hy = nwHex.second; hy <= seHex.second; ++hy) {
-            drawTile(hx, hy);
+        for (Sint16 hx = nwHex.first; hx <= seHex.first; ++hx) {
+            for (Sint16 hy = nwHex.second; hy <= seHex.second; ++hy) {
+                drawTile(hx, hy);
+            }
         }
-    }
-    for (Sint16 hx = nwHex.first; hx <= seHex.first; ++hx) {
-        for (Sint16 hy = nwHex.second; hy <= seHex.second; ++hy) {
-            drawObstacle(hx, hy);
+        for (Sint16 hx = nwHex.first; hx <= seHex.first; ++hx) {
+            for (Sint16 hy = nwHex.second; hy <= seHex.second; ++hy) {
+                drawObstacle(hx, hy);
+            }
         }
-    }
 
-    for (auto node : selectedPath_) {
-        Sint16 spx = 0;
-        Sint16 spy = 0;
-        std::tie(spx, spy) = sPixel(node);
-        std::cerr << node << " (" << spx << ',' << spy << "); ";
-        sdlBlit(pathHighlight, spx, spy);
-    }
-    if (!selectedPath_.empty()) {
-        std::cerr << '\n';
-    }
+        for (auto node : selectedPath_) {
+            Sint16 spx = 0;
+            Sint16 spy = 0;
+            std::tie(spx, spy) = sPixel(node);
+            std::cerr << node << " (" << spx << ',' << spy << "); ";
+            sdlBlit(pathHighlight, spx, spy);
+        }
+        if (!selectedPath_.empty()) {
+            std::cerr << '\n';
+        }
 
-    if (selectedHex_ != hInvalid) {
-        Sint16 spx = 0;
-        Sint16 spy = 0;
-        std::tie(spx, spy) = sPixelFromHex(selectedHex_);
-        sdlBlit(hexHighlight, spx, spy);
-    }
-
-    SDL_SetClipRect(screen, &temp);
+        if (selectedHex_ != hInvalid) {
+            Sint16 spx = 0;
+            Sint16 spy = 0;
+            std::tie(spx, spy) = sPixelFromHex(selectedHex_);
+            sdlBlit(hexHighlight, spx, spy);
+        }
+    });
 }
 
 void RandomMap::redraw()

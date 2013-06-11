@@ -298,10 +298,9 @@ void sdlDrawText(const SdlFont &font, const char *txt, SDL_Rect pos,
         pos.x -= textImg->w;
     }
 
-    SDL_Rect temp;
-    SDL_GetClipRect(screen, &temp);
-    SDL_SetClipRect(screen, &pos);
-    sdlClear(pos);
-    sdlBlit(textImg, pos.x, pos.y);
-    SDL_SetClipRect(screen, &temp);
+    sdlSetClipRect(pos, [&]
+    {
+        sdlClear(pos);
+        sdlBlit(textImg, pos.x, pos.y);
+    });
 }

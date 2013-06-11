@@ -72,4 +72,15 @@ enum class Justify {LEFT, CENTER, RIGHT};
 void sdlDrawText(const SdlFont &font, const char *txt, SDL_Rect pos,
                  const SDL_Color &color, Justify j = Justify::LEFT);
 
+// Set the clipping region for the duration of a lambda or other function call.
+template <typename Func>
+void sdlSetClipRect(const SDL_Rect &rect, const Func &f)
+{
+    SDL_Rect temp;
+    SDL_GetClipRect(screen, &temp);
+    SDL_SetClipRect(screen, &rect);
+    f();
+    SDL_SetClipRect(screen, &temp);
+}
+
 #endif
