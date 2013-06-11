@@ -33,7 +33,8 @@ target_link_libraries(${EXE2} mingw32 SDLmain SDL SDL_image SDL_ttf SDL_mixer)
 set(EXE3 jukebox)
 set(SRC3 jukebox.cpp gui.cpp sdl_helper.cpp)
 add_executable(${EXE3} ${SRC3})
-target_link_libraries(${EXE3} mingw32 SDLmain SDL SDL_image SDL_ttf SDL_mixer)
+target_link_libraries(${EXE3} mingw32 SDLmain SDL SDL_image SDL_ttf SDL_mixer
+    boost_filesystem-mgw47-s-1_52 boost_system-mgw47-s-1_52)
 
 enable_testing()
 set(TEST_EXE test1)
