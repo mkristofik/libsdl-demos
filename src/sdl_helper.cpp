@@ -190,6 +190,11 @@ SdlMusic sdlLoadMusic(const char *filename)
     return music;
 }
 
+SdlMusic sdlLoadMusic(const std::string &filename)
+{
+    return sdlLoadMusic(filename.c_str());
+}
+
 void sdlDashedLineH(Sint16 px, Sint16 py, Uint16 len, Uint32 color)
 {
     assert(screen != nullptr);
@@ -303,4 +308,16 @@ void sdlDrawText(const SdlFont &font, const char *txt, SDL_Rect pos,
         sdlClear(pos);
         sdlBlit(textImg, pos.x, pos.y);
     });
+}
+
+void sdlDrawText(const SdlFont &font, const std::string &txt, SDL_Rect pos,
+                 const SDL_Color &color, Justify j)
+{
+    return sdlDrawText(font, txt.c_str(), pos, color, j);
+}
+
+void sdlPlayMusic(SdlMusic &music)
+{
+    Mix_PlayMusic(music.get(), 0);
+    Mix_VolumeMusic(MIX_MAX_VOLUME / 2);
 }

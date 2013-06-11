@@ -12,6 +12,7 @@
 */
 #include "gui.h"
 #include "sdl_helper.h"
+#include <cassert>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -20,9 +21,11 @@
 #define BOOST_SYSTEM_NO_DEPRECATED
 #include "boost/filesystem.hpp"
 
-namespace
+struct MusicInfo
 {
-}
+    std::string path;
+    SdlMusic music;
+};
 
 void handleMouseUp(const SDL_MouseButtonEvent &event,
                    std::vector<GuiButton *> buttons)
@@ -38,7 +41,7 @@ void handleMouseUp(const SDL_MouseButtonEvent &event,
     }
 }
 
-std::vector<std::string> getMusicFiles(const char *dir)
+std::vector<MusicInfo> getMusicFiles(const char *dir)
 {
     namespace bfs = boost::filesystem;
 
@@ -47,9 +50,11 @@ std::vector<std::string> getMusicFiles(const char *dir)
         return {};
     }
 
-    std::vector<std::string> files;
+    std::vector<MusicInfo> files;
     for (bfs::directory_iterator i(p); i != bfs::directory_iterator(); ++i) {
-        files.push_back(i->path().string());
+        bfs::path rawPath = i->path();
+        std::string path = rawPath.make_preferred().string();
+        files.emplace_back(MusicInfo{path, sdlLoadMusic(path)});
     }
 
     return files;
@@ -81,21 +86,17 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
 
     SDL_UpdateRect(screen, 0, 0, 0, 0);
 
-    // TODO: load everything in the music directory, random shuffle.
     auto musicFiles = getMusicFiles("../music");
-    for (auto m : musicFiles) {
-        std::cout << m << '\n';
-    }
-    SdlMusic music = sdlLoadMusic("../music/wesnoth.ogg");
-    // note: can't allocate this at global scope because it has to be freed
-    // before closing down SDL_Mixer.
+    assert(!musicFiles.empty());
+
+    int trackNum = 0;
 
     playButton.onClick([&] {
         if (!Mix_PlayingMusic()) {  // have we started playing music at all
-            Mix_PlayMusic(music.get(), 0);
-            Mix_VolumeMusic(MIX_MAX_VOLUME / 2);
+            auto &track = musicFiles[trackNum];
+            sdlPlayMusic(track.music);
             playButton.setImage(pause);
-            sdlDrawText(font, "../music/wesnoth.ogg", trackTitle, white);
+            sdlDrawText(font, track.path, trackTitle, white);
         }
         else {
             if (Mix_PausedMusic()) {
@@ -106,6 +107,36 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
                 playButton.setImage(play);
                 Mix_PauseMusic();
             }
+        }
+    });
+
+    nextTrack.onClick([&] {
+        if (!Mix_PlayingMusic()) return;
+
+        trackNum = (trackNum + 1) % musicFiles.size();
+        auto &track = musicFiles[trackNum];
+        sdlDrawText(font, track.path, trackTitle, white);
+        if (Mix_PausedMusic()) {
+            sdlPlayMusic(track.music);
+            Mix_PauseMusic();
+        }
+        else {
+            sdlPlayMusic(track.music);
+        }
+    });
+
+    prevTrack.onClick([&] {
+        if (!Mix_PlayingMusic()) return;
+
+        trackNum = (trackNum - 1) % musicFiles.size();
+        auto &track = musicFiles[trackNum];
+        sdlDrawText(font, track.path, trackTitle, white);
+        if (Mix_PausedMusic()) {
+            sdlPlayMusic(track.music);
+            Mix_PauseMusic();
+        }
+        else {
+            sdlPlayMusic(track.music);
         }
     });
 

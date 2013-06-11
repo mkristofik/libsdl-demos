@@ -18,6 +18,7 @@
 #include "SDL_mixer.h"
 #include "SDL_ttf.h"
 #include <memory>
+#include <string>
 #include <utility>
 
 using SdlSurface = std::shared_ptr<SDL_Surface>;
@@ -49,10 +50,25 @@ void sdlBlit(const SdlSurface &surf, Sint16 px, Sint16 py);
 // Clear the given region of the screen.
 void sdlClear(SDL_Rect region);
 
+// Set the clipping region for the duration of a lambda or other function call.
+template <typename Func>
+void sdlSetClipRect(const SDL_Rect &rect, const Func &f)
+{
+    SDL_Rect temp;
+    SDL_GetClipRect(screen, &temp);
+    SDL_SetClipRect(screen, &rect);
+    f();
+    SDL_SetClipRect(screen, &temp);
+}
+
 // Load a resource from disk.  Returns null on failure.
 SdlSurface sdlLoadImage(const char *filename);
 SdlFont sdlLoadFont(const char *filename, int ptSize);
 SdlMusic sdlLoadMusic(const char *filename);
+SdlMusic sdlLoadMusic(const std::string &filename);
+// note: don't try to allocate these at global scope.  They need sdlInit()
+// before they will work, and the objects must be freed before SDL teardown
+// happens.
 
 // Draw a dashed line to the screen starting at (px,py).
 void sdlDashedLineH(Sint16 px, Sint16 py, Uint16 len, Uint32 color);
@@ -71,16 +87,10 @@ SDL_Rect sdlGetBounds(const SdlSurface &surf, Sint16 x, Sint16 y);
 enum class Justify {LEFT, CENTER, RIGHT};
 void sdlDrawText(const SdlFont &font, const char *txt, SDL_Rect pos,
                  const SDL_Color &color, Justify j = Justify::LEFT);
+void sdlDrawText(const SdlFont &font, const std::string &txt, SDL_Rect pos,
+                 const SDL_Color &color, Justify j = Justify::LEFT);
 
-// Set the clipping region for the duration of a lambda or other function call.
-template <typename Func>
-void sdlSetClipRect(const SDL_Rect &rect, const Func &f)
-{
-    SDL_Rect temp;
-    SDL_GetClipRect(screen, &temp);
-    SDL_SetClipRect(screen, &rect);
-    f();
-    SDL_SetClipRect(screen, &temp);
-}
+// Play a music file at a reasonable volume.
+void sdlPlayMusic(SdlMusic &music);
 
 #endif
