@@ -21,9 +21,10 @@ results in the screenshot below.
 - Edge transitions between tiles of different terrain.
 - Map scrolling by hovering the mouse near a map edge, or click-and-drag within the minimap ([video](http://youtu.be/foWstanCoUw)).
 - Obstacles (trees, mountains, etc.) assigned by a simple [value noise](http://en.wikipedia.org/wiki/Value_noise) algorithm.  Any hex above a threshold gets an obstacle.
-- Multiple obstacle images per terrain type, chosen randomly at map generation time.
+- Multiple obstacle images per terrain type, chosen randomly at map generation time.  The obstacle images are offset slightly from the center of each hex for a more irregular look.
 - No islands within each region.  Every open hex in a region is guaranteed to be reachable from every other open hex.
 - Pathfinding using [A\*](http://en.wikipedia.org/wiki/A*) and Dijkstra's Algorithm.  It's fast enough to render paths in [real time](http://www.youtube.com/watch?v=2PPOoeHhWMw).
+- Hierarchical pathfinding enables real-time path generation across multiple regions, or even the entire map.  I first compute a top-level set of hops between regions, then run the pathfinder again to compute the final path inside each region.  [See a demo]().
 
 ![screenshot](https://raw.github.com/mkristofik/libsdl-demos/master/random_screen.jpg)
 
