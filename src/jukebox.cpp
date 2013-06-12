@@ -77,11 +77,11 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     GuiButton prevTrack{55, 90, prev};
     std::vector<GuiButton *> buttons = {&playButton, &nextTrack, &prevTrack};
 
-    auto font = sdlLoadFont("../DejaVuSans.ttf", 12);
+    auto font = sdlLoadFont("../DejaVuSans.ttf", 14);
     auto white = SDL_Color{255, 255, 255, 0};
     sdlDrawText(font, "Now playing:", SDL_Rect{10, 10, 230, 20}, white);
 
-    auto trackTitle = SDL_Rect{10, 30, 230, 20};
+    auto trackTitle = SDL_Rect{10, 30, 230, 50};
     sdlDrawText(font, "Nothing", trackTitle, white);
 
     SDL_UpdateRect(screen, 0, 0, 0, 0);

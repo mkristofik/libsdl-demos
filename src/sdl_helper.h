@@ -84,11 +84,10 @@ Dir8 nearEdge(Sint16 x, Sint16 y, const SDL_Rect &rect);
 SDL_Rect sdlGetBounds(const SdlSurface &surf, Sint16 x, Sint16 y);
 
 // Draw text to the screen.
-enum class Justify {LEFT, CENTER, RIGHT};
 void sdlDrawText(const SdlFont &font, const char *txt, SDL_Rect pos,
-                 const SDL_Color &color, Justify j = Justify::LEFT);
+                 const SDL_Color &color);
 void sdlDrawText(const SdlFont &font, const std::string &txt, SDL_Rect pos,
-                 const SDL_Color &color, Justify j = Justify::LEFT);
+                 const SDL_Color &color);
 
 // Play a music file at a reasonable volume.
 void sdlPlayMusic(SdlMusic &music);

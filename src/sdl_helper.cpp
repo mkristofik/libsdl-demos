@@ -13,7 +13,9 @@
 #include "sdl_helper.h"
 #include <cassert>
 #include <iostream>
+#include <string>
 #include <vector>
+#include "boost/tokenizer.hpp"
 
 SDL_Surface *screen = nullptr;
 
@@ -39,6 +41,53 @@ namespace
         }
 
         return dashes;
+    }
+
+    // Break a string into multiple lines based on rendered line length.
+    // Return one string per line.
+    std::vector<std::string> wordWrap(const SdlFont &font,
+                                      const std::string &txt, int lineLen)
+    {
+        assert(lineLen > 0);
+
+        // First try: does it all fit on one line?
+        int width = 0;
+        if (TTF_SizeText(font.get(), txt.c_str(), &width, 0) < 0) {
+            std::cerr << "Warning: problem rendering word wrap - " <<
+                TTF_GetError();
+            return {txt};
+        }
+        if (width <= lineLen) {
+            return {txt};
+        }
+
+        // Break up the string on spaces.
+        boost::char_separator<char> sep{" "};
+        boost::tokenizer<boost::char_separator<char>> tokens{txt, sep};
+
+        // Doesn't matter if the first token fits, render it anyway.
+        auto tok = std::begin(tokens);
+        std::string strSoFar = *tok;
+        ++tok;
+
+        // Test rendering each word until we surpass the line length.
+        std::vector<std::string> lines;
+        while (tok != std::end(tokens)) {
+            std::string nextStr = strSoFar + " " + *tok;
+            TTF_SizeText(font.get(), nextStr.c_str(), &width, 0);
+            if (width > lineLen) {
+                lines.push_back(strSoFar);
+                strSoFar = *tok;
+            }
+            else {
+                strSoFar = nextStr;
+            }
+            ++tok;
+        }
+
+        // Add remaining words.
+        lines.push_back(strSoFar);
+        return lines;
     }
 }
 
@@ -287,33 +336,34 @@ SDL_Rect sdlGetBounds(const SdlSurface &surf, Sint16 x, Sint16 y)
 }
 
 void sdlDrawText(const SdlFont &font, const char *txt, SDL_Rect pos,
-                 const SDL_Color &color, Justify j)
+                 const SDL_Color &color)
 {
-    SdlSurface textImg = make_surface(TTF_RenderText_Blended(font.get(), txt,
-                                                             color));
-    if (textImg == nullptr) {
-        std::cerr << "Warning: error rendering blended text: " << TTF_GetError();
-        return;
-    }
+    auto lines = wordWrap(font, txt, pos.w);
 
-    if (j == Justify::CENTER) {
-        pos.x -= textImg->w / 2;
-    }
-    else if (j == Justify::RIGHT) {
-        pos.x -= textImg->w;
-    }
-
+    sdlClear(pos);
     sdlSetClipRect(pos, [&]
     {
-        sdlClear(pos);
-        sdlBlit(textImg, pos.x, pos.y);
+        auto yPos = pos.y;
+        for (const auto &str : lines) {
+            auto textImg = make_surface(TTF_RenderText_Blended(font.get(),
+                                                               str.c_str(),
+                                                               color));
+            if (textImg == nullptr) {
+                std::cerr << "Warning: error rendering blended text: " <<
+                    TTF_GetError();
+                return;
+            }
+
+            sdlBlit(textImg, pos.x, yPos);
+            yPos += TTF_FontLineSkip(font.get());
+        }
     });
 }
 
 void sdlDrawText(const SdlFont &font, const std::string &txt, SDL_Rect pos,
-                 const SDL_Color &color, Justify j)
+                 const SDL_Color &color)
 {
-    return sdlDrawText(font, txt.c_str(), pos, color, j);
+    return sdlDrawText(font, txt.c_str(), pos, color);
 }
 
 void sdlPlayMusic(SdlMusic &music)
