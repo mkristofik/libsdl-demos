@@ -23,7 +23,7 @@ results in the screenshot below.
 - Obstacles (trees, mountains, etc.) assigned by a simple [value noise](http://en.wikipedia.org/wiki/Value_noise) algorithm.  Any hex above a threshold gets an obstacle.
 - Multiple obstacle images per terrain type, chosen randomly at map generation time.
 - No islands within each region.  Every open hex in a region is guaranteed to be reachable from every other open hex.
-- Pathfinding using [A\*](http://en.wikipedia.org/wiki/A*) and Dijkstra's Algorithm.  It's fast enough to render small paths in [real time](http://www.youtube.com/watch?v=2PPOoeHhWMw).
+- Pathfinding using [A\*](http://en.wikipedia.org/wiki/A*) and Dijkstra's Algorithm.  It's fast enough to render paths in [real time](http://www.youtube.com/watch?v=2PPOoeHhWMw).
 
 ![screenshot](https://raw.github.com/mkristofik/libsdl-demos/master/random_screen.jpg)
 
@@ -37,6 +37,19 @@ results in the screenshot below.
 - What does the goal look like?
 
 I think that last question is the most interesting.  Sometimes you don't know where the goal node is.  There might even be more than one.  A user might ask, "find me shortest path to the nearest water hex."  Any water hex will do.  A nice property of A\*/Dijkstra's is stopping once it reaches *any* goal node, knowing that it has taken the shortest path to get there.
+
+## Jukebox
+
+This little app does what you'd expect: it plays music.  Any game is probably going to want background music, so it would be useful to know how to play it.  To use it, create a `music` subfolder within the project and fill it with music files.
+
+**Things I learned:**
+
+- Playback of .mp3 and .ogg files is trivial with the SDL\_Mixer library.
+- There's no API to get the current track position, so that's why you don't see a slider bar.  I presume this is because games don't typically need that feature.
+- Handling pushbuttons in the user interface.
+- Word wrapped text for long file names.
+
+![screenshot, paused](https://raw.github.com/mkristofik/libsdl-demos/master/jukebox_screen_paused.jpg) ![screenshot, playing](https://raw.github.com/mkristofik/libsdl-demos/master/jukebox_screen_playing.jpg)
 
 ## Hello World
 
@@ -53,6 +66,7 @@ of anti-aliasing enabled.
 [SDL 1.2.15](http://www.libsdl.org/)  
 [SDL\_image 1.2.12](http://www.libsdl.org/projects/SDL_image/)  
 [SDL\_ttf 2.0.11](http://www.libsdl.org/projects/SDL_ttf/)  
+[SDL\_mixer 1.2.12](http://www.libsdl.org/projects/SDL_mixer/)  
 [DejaVuSans](http://dejavu-fonts.org/wiki/Main_Page) font (drop the .ttf file
 in the top-level directory)
 
