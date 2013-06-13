@@ -24,7 +24,7 @@ results in the screenshot below.
 - Multiple obstacle images per terrain type, chosen randomly at map generation time.  The obstacle images are offset slightly from the center of each hex for a more irregular look.
 - No islands within each region.  Every open hex in a region is guaranteed to be reachable from every other open hex.
 - Pathfinding using [A\*](http://en.wikipedia.org/wiki/A*) and Dijkstra's Algorithm.  It's fast enough to render paths in [real time](http://www.youtube.com/watch?v=2PPOoeHhWMw).
-- Hierarchical pathfinding enables real-time path generation across multiple regions, or even the entire map.  I first compute a top-level set of hops between regions, then run the pathfinder again to compute the final path inside each region.  [See a demo]().
+- Hierarchical pathfinding enables real-time path generation across multiple regions, or even the entire map.  I first compute a top-level set of hops between regions, then run the pathfinder again to compute the final path inside each region.  [See a demo](http://www.youtube.com/watch?v=r2fWScHL5DQ).
 
 ![screenshot](https://raw.github.com/mkristofik/libsdl-demos/master/random_screen.jpg)
 
