@@ -10,10 +10,13 @@
  
     See the COPYING.txt file for more details.
 */
-#include "HexGrid.h"
 #include "hex_utils.h"
 #include "sdl_helper.h"
+#include <iostream>
 #include <tuple>
+
+// Who is animating right now?
+enum class Animating { NONE, BOWMAN };
 
 namespace
 {
@@ -22,6 +25,20 @@ namespace
     const Sint16 pWidth = pHexSize * 3 / 4 * width + pHexSize / 4;
     const Sint16 pHeight = pHexSize * height;
     SDL_Rect window = {0, 0, pWidth, pHeight};
+
+    SdlSurface tile;
+    SdlSurface bowman;
+    SdlSurface bowmanAttack;
+
+    Uint32 animStart_ms = 0;
+    auto subject = Animating::NONE;
+}
+
+void loadImages()
+{
+    tile = sdlLoadImage("../img/hex-grid.png");
+    bowman = sdlLoadImage("../img/bowman.png");
+    bowmanAttack = sdlLoadImage("../img/bowman-attack-ranged.png");
 }
 
 Point pixelFromHex(Sint16 hx, Sint16 hy)
@@ -31,10 +48,23 @@ Point pixelFromHex(Sint16 hx, Sint16 hy)
     return {px, py};
 }
 
-// Draw a 5-hex wide hexagonal grid.
-void drawHexGrid(const SdlSurface &tile)
+void handleMouseUp(const SDL_MouseButtonEvent &event)
 {
-    sdlClear(window);
+    // Ignore mouse clicks while animating.
+    if (subject != Animating::NONE) {
+        return;
+    }
+
+    // Left mouse button starts the bowman animation.
+    if (event.button == SDL_BUTTON_LEFT) {
+        subject = Animating::BOWMAN;
+        animStart_ms = SDL_GetTicks();
+    }
+}
+
+// Draw a 5-hex wide hexagonal grid.
+void drawHexGrid()
+{
     for (int x = 0; x < 5; ++x) {
         for (int y = 1; y < 4; ++y) {
             sdlBlit(tile, pixelFromHex(x, y));
@@ -46,14 +76,46 @@ void drawHexGrid(const SdlSurface &tile)
     sdlBlit(tile, pixelFromHex(2, 4));
 }
 
+void drawBowman()
+{
+    auto hex = pixelFromHex(1, 0);
+    if (subject != Animating::BOWMAN) {
+        sdlBlit(bowman, hex);
+        return;
+    }
+
+    // TODO:
+    // - missile fires 295 ms
+    // - in wesnoth, missile hits 445 ms
+    Uint32 frameSeq_ms[] = {65, 140, 215, 315, 445, 510};
+    bool animDone = true;
+
+    auto elapsed_ms = SDL_GetTicks() - animStart_ms;
+    for (int i = 0; i < 6; ++i) {
+        if (elapsed_ms < frameSeq_ms[i]) {
+            sdlBlitFrame(bowmanAttack, i, 6, hex);
+            animDone = false;
+            break;
+        }
+    }
+    if (animDone) {
+        sdlBlit(bowman, hex);
+        subject = Animating::NONE;
+        // TODO: resetting this actually depends on the flight of the arrow and
+        // the hit animation of the target.
+    }
+}
+
 extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
 {
     if (!sdlInit(window.w, window.h, "../img/icon.png", "Animation Test")) {
         return EXIT_FAILURE;
     }
 
-    SdlSurface tile = sdlLoadImage("../img/hex-grid.png");
-    drawHexGrid(tile);
+    loadImages();
+
+    drawHexGrid();
+    drawBowman();
     SDL_UpdateRect(screen, 0, 0, 0, 0);
 
     bool isDone = false;
@@ -63,6 +125,16 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
             if (event.type == SDL_QUIT) {
                 isDone = true;
             }
+            else if (event.type == SDL_MOUSEBUTTONUP) {
+                handleMouseUp(event.button);
+            }
+        }
+
+        if (subject != Animating::NONE) {
+            sdlClear(window);
+            drawHexGrid();
+            drawBowman();
+            SDL_UpdateRect(screen, 0, 0, 0, 0);
         }
 
         SDL_Delay(1);
