@@ -204,6 +204,29 @@ void sdlBlit(const SdlSurface &surf, const Point &pos)
     sdlBlit(surf, pos.first, pos.second);
 }
 
+void sdlBlitFrame(const SdlSurface &surf, int frame, int numFrames,
+                  Sint16 px, Sint16 py)
+{
+    assert(screen != nullptr);
+    Sint16 frameWidth = surf->w / numFrames;
+    SDL_Rect src;
+    src.x = frame * frameWidth;
+    src.y = 0;
+    src.w = frameWidth;
+    src.h = surf->h;
+    auto dest = SDL_Rect{px, py, 0, 0};
+    if (SDL_BlitSurface(surf.get(), &src, screen, &dest) < 0) {
+        std::cerr << "Warning: error drawing to screen: " << SDL_GetError()
+            << '\n';
+    }
+}
+
+void sdlBlitFrame(const SdlSurface &surf, int frame, int numFrames,
+                  const Point &pos)
+{
+    sdlBlitFrame(surf, frame, numFrames, pos.first, pos.second);
+}
+
 void sdlClear(SDL_Rect region)
 {
     assert(screen != nullptr);
