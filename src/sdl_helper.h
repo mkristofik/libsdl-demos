@@ -17,6 +17,7 @@
 #include "SDL_image.h"
 #include "SDL_mixer.h"
 #include "SDL_ttf.h"
+#include "hex_utils.h"
 #include <memory>
 #include <string>
 #include <utility>
@@ -46,6 +47,7 @@ SdlSurface sdlDisplayFormat(const SdlSurface &src);
 // Draw the full surface to the screen using (px,py) as the upper-left corner.
 // Use the raw SDL_BlitSurface if you need something more specific.
 void sdlBlit(const SdlSurface &surf, Sint16 px, Sint16 py);
+void sdlBlit(const SdlSurface &surf, const Point &pos);
 
 // Clear the given region of the screen.
 void sdlClear(SDL_Rect region);

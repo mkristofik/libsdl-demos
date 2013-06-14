@@ -36,6 +36,11 @@ add_executable(${EXE3} ${SRC3})
 target_link_libraries(${EXE3} mingw32 SDLmain SDL SDL_image SDL_ttf SDL_mixer
     boost_filesystem-mgw47-s-1_52 boost_system-mgw47-s-1_52)
 
+set(EXE4 animate)
+set(SRC4 animate.cpp HexGrid.cpp algo.cpp hex_utils.cpp sdl_helper.cpp)
+add_executable(${EXE4} ${SRC4})
+target_link_libraries(${EXE4} mingw32 SDLmain SDL SDL_image SDL_ttf SDL_mixer)
+
 enable_testing()
 set(TEST_EXE test1)
 add_executable(${TEST_EXE} test.cpp HexGrid.cpp algo.cpp hex_utils.cpp)

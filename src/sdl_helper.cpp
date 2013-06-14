@@ -199,6 +199,11 @@ void sdlBlit(const SdlSurface &surf, Sint16 px, Sint16 py)
     }
 }
 
+void sdlBlit(const SdlSurface &surf, const Point &pos)
+{
+    sdlBlit(surf, pos.first, pos.second);
+}
+
 void sdlClear(SDL_Rect region)
 {
     assert(screen != nullptr);

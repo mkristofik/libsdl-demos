@@ -50,7 +50,8 @@ This little app does what you'd expect: it plays music.  Any game is probably go
 - Handling pushbuttons in the user interface.
 - Word wrapped text for long file names.
 
-![screenshot, paused](https://raw.github.com/mkristofik/libsdl-demos/master/jukebox_screen_paused.jpg) ![screenshot, playing](https://raw.github.com/mkristofik/libsdl-demos/master/jukebox_screen_playing.jpg)
+![screenshot, paused](https://raw.github.com/mkristofik/libsdl-demos/master/jukebox_screen_paused.jpg)
+![screenshot, playing](https://raw.github.com/mkristofik/libsdl-demos/master/jukebox_screen_playing.jpg)
 
 ## Hello World
 
