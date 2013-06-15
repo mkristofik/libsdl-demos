@@ -151,21 +151,41 @@ void drawMarshal()
         return;
     }
 
-    // TODO:
-    // - attack hits at 300 (might have to adjust this)
-    // - second-to-last frame is the last one with a swinging sword
     Uint32 frameSeq_ms[] = {50, 100, 200, 275, 375, 425, 500};
     auto elapsed_ms = SDL_GetTicks() - animStart_ms;
-    if (elapsed_ms > 500) {
+    if (elapsed_ms > 600) {
         sdlBlit(marshal, hex);
         subject = Animating::NONE;
         // TODO: resetting this actually depends on the defender's hit animation
         return;
     }
 
+    // attack animation lasts 600 ms
+    // first half, slide toward hex 2,3 (get halfway there)
+    // second half, slide back
+    auto target = pixelFromHex(2, 3);
+    auto dx = (target.first - hex.first) / 2;
+    auto dy = (target.second - hex.second) / 2;
+    Sint16 drawX = 0;
+    Sint16 drawY = 0;
+    if (elapsed_ms < 300) {
+        drawX = elapsed_ms / 300.0 * dx + hex.first;
+        drawY = elapsed_ms / 300.0 * dy + hex.second;
+    }
+    else {
+        drawX = (600 - elapsed_ms) / 300.0 * dx + hex.first;
+        drawY = (600 - elapsed_ms) / 300.0 * dy + hex.second;
+    }
+
+    // Past the end of the animated frames, draw the base image.
+    if (elapsed_ms > 500) {
+        sdlBlit(marshal, drawX, drawY);
+        return;
+    }
+
     for (int i = 0; i < 7; ++i) {
         if (elapsed_ms < frameSeq_ms[i]) {
-            sdlBlitFrame(marshalAttack, i, 7, hex);
+            sdlBlitFrame(marshalAttack, i, 7, drawX, drawY);
             break;
         }
     }
