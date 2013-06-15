@@ -16,7 +16,7 @@
 #include <tuple>
 
 // Who is animating right now?
-enum class Animating { NONE, BOWMAN };
+enum class Animating { NONE, BOWMAN, MARSHAL };
 
 namespace
 {
@@ -29,6 +29,9 @@ namespace
     SdlSurface tile;
     SdlSurface bowman;
     SdlSurface bowmanAttack;
+    SdlSurface marshal;
+    SdlSurface marshalAttack;
+    SdlSurface missile;
 
     Uint32 animStart_ms = 0;
     auto subject = Animating::NONE;
@@ -39,6 +42,9 @@ void loadImages()
     tile = sdlLoadImage("../img/hex-grid.png");
     bowman = sdlLoadImage("../img/bowman.png");
     bowmanAttack = sdlLoadImage("../img/bowman-attack-ranged.png");
+    marshal = sdlLoadImage("../img/marshal.png");
+    marshalAttack = sdlLoadImage("../img/marshal-attack-melee.png");
+    missile = sdlLoadImage("../img/missile.png");
 }
 
 Point pixelFromHex(Sint16 hx, Sint16 hy)
@@ -55,9 +61,12 @@ void handleMouseUp(const SDL_MouseButtonEvent &event)
         return;
     }
 
-    // Left mouse button starts the bowman animation.
     if (event.button == SDL_BUTTON_LEFT) {
         subject = Animating::BOWMAN;
+        animStart_ms = SDL_GetTicks();
+    }
+    else if (event.button == SDL_BUTTON_RIGHT) {
+        subject = Animating::MARSHAL;
         animStart_ms = SDL_GetTicks();
     }
 }
@@ -88,23 +97,82 @@ void drawBowman()
     // - missile fires 295 ms
     // - in wesnoth, missile hits 445 ms
     Uint32 frameSeq_ms[] = {65, 140, 215, 315, 445, 510};
-    bool animDone = true;
-
     auto elapsed_ms = SDL_GetTicks() - animStart_ms;
+    if (elapsed_ms > 510) {
+        sdlBlit(bowman, hex);
+        return;
+    }
+
     for (int i = 0; i < 6; ++i) {
         if (elapsed_ms < frameSeq_ms[i]) {
             sdlBlitFrame(bowmanAttack, i, 6, hex);
-            animDone = false;
             break;
         }
     }
-    if (animDone) {
-        sdlBlit(bowman, hex);
+}
+
+void drawMissile()
+{
+    if (subject != Animating::BOWMAN) {
+        return;
+    }
+
+    auto elapsed_ms = SDL_GetTicks() - animStart_ms;
+    if (elapsed_ms < 295) {
+        return;
+    }
+    else if (elapsed_ms > 745) {
         subject = Animating::NONE;
-        // TODO: resetting this actually depends on the flight of the arrow and
-        // the hit animation of the target.
+        // TODO: resetting this actually depends on the hit animation of the
+        // target.
+        return;
+    }
+
+    auto start = pixelFromHex(1, 0);
+    auto delta = pixelFromHex(4, 2) - start;
+
+    // Arrow flies 1 hex in 150 ms.  Total distance is 3 hexes, so time of
+    // flight is 450 ms.
+    auto dt = (elapsed_ms - 295) / 450.0;
+    Sint16 px = start.first + dt * delta.first;
+    Sint16 py = start.second + dt * delta.second;
+
+    // If we did this for real, we'd have to compute angle.  In this case we
+    // know arrow flies southeast.
+    auto direction = static_cast<int>(Dir::SE);
+    sdlBlitFrame(missile, direction, 6, px, py);
+}
+
+void drawMarshal()
+{
+    auto hex = pixelFromHex(1, 2);
+    if (subject != Animating::MARSHAL) {
+        sdlBlit(marshal, hex);
+        return;
+    }
+
+    // TODO:
+    // - attack hits at 300 (might have to adjust this)
+    // - second-to-last frame is the last one with a swinging sword
+    Uint32 frameSeq_ms[] = {50, 100, 200, 275, 375, 425, 500};
+    auto elapsed_ms = SDL_GetTicks() - animStart_ms;
+    if (elapsed_ms > 500) {
+        sdlBlit(marshal, hex);
+        subject = Animating::NONE;
+        // TODO: resetting this actually depends on the defender's hit animation
+        return;
+    }
+
+    for (int i = 0; i < 7; ++i) {
+        if (elapsed_ms < frameSeq_ms[i]) {
+            sdlBlitFrame(marshalAttack, i, 7, hex);
+            break;
+        }
     }
 }
+
+// enemy 1 at hex 4,2 hit by arrow
+// enemy 2 at hex 2,3 hit by sword
 
 extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
 {
@@ -116,6 +184,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
 
     drawHexGrid();
     drawBowman();
+    drawMarshal();
     SDL_UpdateRect(screen, 0, 0, 0, 0);
 
     bool isDone = false;
@@ -134,6 +203,8 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
             sdlClear(window);
             drawHexGrid();
             drawBowman();
+            drawMissile();
+            drawMarshal();
             SDL_UpdateRect(screen, 0, 0, 0, 0);
         }
 

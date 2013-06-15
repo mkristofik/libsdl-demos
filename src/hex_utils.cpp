@@ -28,6 +28,11 @@ Point operator+(const Point &lhs, const Point &rhs)
     return {lhs.first + rhs.first, lhs.second + rhs.second};
 }
 
+Point operator-(const Point &lhs, const Point &rhs)
+{
+    return {lhs.first - rhs.first, lhs.second - rhs.second};
+}
+
 std::string str(const Point &p)
 {
     std::ostringstream strm;
