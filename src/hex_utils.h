@@ -33,6 +33,12 @@ bool operator!=(const Point &lhs, const Point &rhs);
 Point operator+(const Point &lhs, const Point &rhs);
 Point operator-(const Point &lhs, const Point &rhs);
 
+template <typename T>
+Point operator/(const Point &lhs, T rhs)
+{
+    return {lhs.first / rhs, lhs.second / rhs};
+}
+
 // String representation of a Point.  Use this instead of writing operator<<
 // because...
 // - Point is really a std::pair.

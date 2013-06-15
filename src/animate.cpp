@@ -164,17 +164,16 @@ void drawMarshal()
     // first half, slide toward hex 2,3 (get halfway there)
     // second half, slide back
     auto target = pixelFromHex(2, 3);
-    auto dx = (target.first - hex.first) / 2;
-    auto dy = (target.second - hex.second) / 2;
+    auto delta = (target - hex) / 2;
     Sint16 drawX = 0;
     Sint16 drawY = 0;
     if (elapsed_ms < 300) {
-        drawX = elapsed_ms / 300.0 * dx + hex.first;
-        drawY = elapsed_ms / 300.0 * dy + hex.second;
+        drawX = elapsed_ms / 300.0 * delta.first + hex.first;
+        drawY = elapsed_ms / 300.0 * delta.second + hex.second;
     }
     else {
-        drawX = (600 - elapsed_ms) / 300.0 * dx + hex.first;
-        drawY = (600 - elapsed_ms) / 300.0 * dy + hex.second;
+        drawX = (600 - elapsed_ms) / 300.0 * delta.first + hex.first;
+        drawY = (600 - elapsed_ms) / 300.0 * delta.second + hex.second;
     }
 
     // Past the end of the animated frames, draw the base image.
