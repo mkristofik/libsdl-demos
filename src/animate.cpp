@@ -32,6 +32,8 @@ namespace
     SdlSurface marshal;
     SdlSurface marshalAttack;
     SdlSurface missile;
+    SdlSurface archer;
+    SdlSurface archerDefend;
 
     Uint32 animStart_ms = 0;
     auto subject = Animating::NONE;
@@ -45,6 +47,8 @@ void loadImages()
     marshal = sdlLoadImage("../img/marshal.png");
     marshalAttack = sdlLoadImage("../img/marshal-attack-melee.png");
     missile = sdlLoadImage("../img/missile.png");
+    archer = sdlLoadImage("../img/orc-archer.png");
+    archerDefend = sdlLoadImage("../img/orc-archer-defend.png");
 }
 
 Point pixelFromHex(Sint16 hx, Sint16 hy)
@@ -118,13 +122,7 @@ void drawMissile()
     }
 
     auto elapsed_ms = SDL_GetTicks() - animStart_ms;
-    if (elapsed_ms < 295) {
-        return;
-    }
-    else if (elapsed_ms > 745) {
-        subject = Animating::NONE;
-        // TODO: resetting this actually depends on the hit animation of the
-        // target.
+    if (elapsed_ms < 295 || elapsed_ms > 745) {
         return;
     }
 
@@ -190,7 +188,27 @@ void drawMarshal()
     }
 }
 
-// enemy 1 at hex 4,2 hit by arrow
+void drawEnemy1()
+{
+    auto hex = pixelFromHex(4, 2);
+    if (subject != Animating::BOWMAN) {
+        sdlBlit(archer, hex);
+        return;
+    }
+
+    auto elapsed_ms = SDL_GetTicks() - animStart_ms;
+    if (elapsed_ms < 745) {  // shooter animation plus time of flight
+        sdlBlit(archer, hex);
+    }
+    else if (elapsed_ms < 995) {
+        sdlBlit(archerDefend, hex);
+    }
+    else {
+        sdlBlit(archer, hex);
+        subject = Animating::NONE;
+    }
+}
+
 // enemy 2 at hex 2,3 hit by sword
 
 extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
@@ -204,6 +222,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     drawHexGrid();
     drawBowman();
     drawMarshal();
+    drawEnemy1();
     SDL_UpdateRect(screen, 0, 0, 0, 0);
 
     bool isDone = false;
@@ -224,6 +243,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
             drawBowman();
             drawMissile();
             drawMarshal();
+            drawEnemy1();
             SDL_UpdateRect(screen, 0, 0, 0, 0);
         }
 
