@@ -34,6 +34,8 @@ namespace
     SdlSurface missile;
     SdlSurface archer;
     SdlSurface archerDefend;
+    SdlSurface grunt;
+    SdlSurface gruntDefend;
 
     Uint32 animStart_ms = 0;
     auto subject = Animating::NONE;
@@ -49,6 +51,8 @@ void loadImages()
     missile = sdlLoadImage("../img/missile.png");
     archer = sdlLoadImage("../img/orc-archer.png");
     archerDefend = sdlLoadImage("../img/orc-archer-defend.png");
+    grunt = sdlLoadImage("../img/orc-grunt.png");
+    gruntDefend = sdlLoadImage("../img/orc-grunt-defend.png");
 }
 
 Point pixelFromHex(Sint16 hx, Sint16 hy)
@@ -209,7 +213,22 @@ void drawEnemy1()
     }
 }
 
-// enemy 2 at hex 2,3 hit by sword
+void drawEnemy2()
+{
+    auto hex = pixelFromHex(2, 3);
+    if (subject != Animating::MARSHAL) {
+        sdlBlit(grunt, hex);
+        return;
+    }
+
+    auto elapsed_ms = SDL_GetTicks() - animStart_ms;
+    if (elapsed_ms < 300 || elapsed_ms > 550) {
+        sdlBlit(grunt, hex);
+    }
+    else {
+        sdlBlit(gruntDefend, hex);
+    }
+}
 
 extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
 {
@@ -223,6 +242,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     drawBowman();
     drawMarshal();
     drawEnemy1();
+    drawEnemy2();
     SDL_UpdateRect(screen, 0, 0, 0, 0);
 
     bool isDone = false;
@@ -242,6 +262,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
             drawHexGrid();
             drawBowman();
             drawMissile();
+            drawEnemy2();  // order matters, we want the attacker drawn on top
             drawMarshal();
             drawEnemy1();
             SDL_UpdateRect(screen, 0, 0, 0, 0);
