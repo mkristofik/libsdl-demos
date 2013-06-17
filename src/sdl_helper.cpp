@@ -90,6 +90,21 @@ namespace
         lines.push_back(strSoFar);
         return lines;
     }
+
+    // source: Battle for Wesnoth, flip_surface() in sdl_utils.cpp.
+    void flipH(Uint32 *pixels, int xStart, int yStart, int width, int height)
+    {
+        // note: skipping the local x and y and using the function args
+        // directly in the loop will cause GCC to optimize this function out.
+        for (int y = yStart; y < height; ++y) {
+            for (int x = xStart; x < width / 2; ++x) {
+                std::cerr << "Flip\n";
+                int i1 = y * width + x;
+                int i2 = (y + 1) * width - x - 1;
+                std::swap(pixels[i1], pixels[i2]);
+            }
+        }
+    }
 }
 
 bool sdlInit(Sint16 winWidth, Sint16 winHeight, const char *iconPath,
@@ -200,14 +215,7 @@ SdlSurface sdlFlipH(const SdlSurface &src)
     }
 
     SdlLock(surf, [&] {
-        auto pixels = static_cast<Uint32 *>(surf->pixels);
-        for (int y = 0; y < surf->h; ++y) {
-            for (int x = 0; x < surf->w / 2; ++x) {
-                int i1 = y * surf->w + x;
-                int i2 = (y + 1) * surf->w - x - 1;
-                std::swap(pixels[i1], pixels[i2]);
-            }
-        }
+        flipH(static_cast<Uint32 *>(surf->pixels), 0, 0, surf->w, surf->h);
     });
 
     return make_surface(surf);
