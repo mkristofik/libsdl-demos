@@ -18,6 +18,7 @@
 #include "SDL_mixer.h"
 #include "SDL_ttf.h"
 #include "hex_utils.h"
+#include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
@@ -74,6 +75,36 @@ void sdlSetClipRect(const SDL_Rect &rect, const Func &f)
     // TODO: this might be better as a struct so that we can restore the clip
     // rectangle if f() throws an exception.
 }
+
+// Lock an image before accessing the underlying pixels.
+struct SdlLock
+{
+    SDL_Surface *surface_;
+
+    template <typename Func>
+    SdlLock(SDL_Surface *surf, const Func &f) : surface_{surf}
+    {
+        if (SDL_MUSTLOCK(surface_)) {
+            if (SDL_LockSurface(surface_) == 0) {
+                f();
+            }
+            else {
+                std::cerr << "Error locking surface: " << SDL_GetError()
+                    << '\n';
+            }
+        }
+        else {
+            f();
+        }
+    }
+
+    ~SdlLock()
+    {
+        if (SDL_MUSTLOCK(surface_)) {
+            SDL_UnlockSurface(surface_);
+        }
+    }
+};
 
 // Load a resource from disk.  Returns null on failure.
 SdlSurface sdlLoadImage(const char *filename);

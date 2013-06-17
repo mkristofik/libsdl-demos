@@ -13,7 +13,6 @@
 #include "hex_utils.h"
 #include "sdl_helper.h"
 #include <iostream>
-#include <tuple>
 
 // Who is animating right now?
 enum class Animating { NONE, BOWMAN, MARSHAL };
@@ -50,9 +49,9 @@ void loadImages()
     marshalAttack = sdlLoadImage("../img/marshal-attack-melee.png");
     missile = sdlLoadImage("../img/missile.png");
     archer = sdlFlipH(sdlLoadImage("../img/orc-archer.png"));
-    archerDefend = sdlLoadImage("../img/orc-archer-defend.png");
+    archerDefend = sdlFlipH(sdlLoadImage("../img/orc-archer-defend.png"));
     grunt = sdlFlipH(sdlLoadImage("../img/orc-grunt.png"));
-    gruntDefend = sdlLoadImage("../img/orc-grunt-defend.png");
+    gruntDefend = sdlFlipH(sdlLoadImage("../img/orc-grunt-defend.png"));
 }
 
 Point pixelFromHex(Sint16 hx, Sint16 hy)

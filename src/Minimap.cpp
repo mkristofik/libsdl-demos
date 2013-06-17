@@ -78,49 +78,39 @@ void Minimap::generate()
                               SDL_MapRGB(surf->format, 48, 48, 48),  // swamp
                               SDL_MapRGB(surf->format, 240, 240, 240)};  // snow
 
-    // TODO: RAII this and the unlock.  We don't want to try to draw anything
-    // if the lock fails.
-    if (SDL_MUSTLOCK(surf.get())) {
-        if (SDL_LockSurface(surf.get()) < 0) {
-            std::cerr << "Error locking surface: " << SDL_GetError() << '\n';
-            return;
-        }
-    }
-
     // For each pixel of minimap,
     //     Get corresponding set of pixels on the main map
     //     Find most common terrain type in that set
     //     Draw that color for the pixel
     //
     // note: this will have to be fixed if BitsPerPixel is ever not 32.
-    for (Sint16 x = 0; x < width_; ++x) {
-        for (Sint16 y = 0; y < height_; ++y) {
-            int mostCommon = GRASS;
-            int count = 0;
-            for (Sint16 i = 0; i < hScale_; ++i) {
-                for (Sint16 j = 0; j < vScale_; ++j) {
-                    int terrain = map_.getTerrainAt(x * hScale_ + i,
-                                                    y * vScale_ + j);
-                    if (terrain == mostCommon) {
-                        ++count;
-                    }
-                    else if (count == 0) {
-                        mostCommon = terrain;
-                        count = 1;
-                    }
-                    else {
-                        --count;
+    SdlLock(surf.get(), [&] {
+        for (Sint16 x = 0; x < width_; ++x) {
+            for (Sint16 y = 0; y < height_; ++y) {
+                int mostCommon = GRASS;
+                int count = 0;
+                for (Sint16 i = 0; i < hScale_; ++i) {
+                    for (Sint16 j = 0; j < vScale_; ++j) {
+                        int terrain = map_.getTerrainAt(x * hScale_ + i,
+                                                        y * vScale_ + j);
+                        if (terrain == mostCommon) {
+                            ++count;
+                        }
+                        else if (count == 0) {
+                            mostCommon = terrain;
+                            count = 1;
+                        }
+                        else {
+                            --count;
+                        }
                     }
                 }
+                assert(mostCommon >= 0 && mostCommon < NUM_TERRAINS);
+                auto pixel = static_cast<Uint32 *>(surf->pixels) + y*width_ + x;
+                *pixel = terrainColors[mostCommon];
             }
-            assert(mostCommon >= 0 && mostCommon < NUM_TERRAINS);
-            Uint32 *pixel = static_cast<Uint32 *>(surf->pixels) + y * width_ + x;
-            *pixel = terrainColors[mostCommon];
         }
-    }
-    if (SDL_MUSTLOCK(surf.get())) {
-        SDL_UnlockSurface(surf.get());
-    }
+    });
 
     surface_ = sdlDisplayFormat(surf);
 }

@@ -199,25 +199,16 @@ SdlSurface sdlFlipH(const SdlSurface &src)
         return nullptr;
     }
 
-    if (SDL_MUSTLOCK(surf)) {
-        if (SDL_LockSurface(surf) < 0) {
-            std::cerr << "Error locking surface: " << SDL_GetError() << '\n';
-            return nullptr;
+    SdlLock(surf, [&] {
+        auto pixels = static_cast<Uint32 *>(surf->pixels);
+        for (int y = 0; y < surf->h; ++y) {
+            for (int x = 0; x < surf->w / 2; ++x) {
+                int i1 = y * surf->w + x;
+                int i2 = (y + 1) * surf->w - x - 1;
+                std::swap(pixels[i1], pixels[i2]);
+            }
         }
-    }
-
-    auto pixels = static_cast<Uint32 *>(surf->pixels);
-    for (int y = 0; y < surf->h; ++y) {
-        for (int x = 0; x < surf->w / 2; ++x) {
-            int i1 = y * surf->w + x;
-            int i2 = (y + 1) * surf->w - x - 1;
-            std::swap(pixels[i1], pixels[i2]);
-        }
-    }
-
-    if (SDL_MUSTLOCK(surf)) {
-        SDL_UnlockSurface(surf);
-    }
+    });
 
     return make_surface(surf);
 }
