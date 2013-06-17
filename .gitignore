@@ -4,5 +4,5 @@ html/
 music/
 *.ttf
 *.swp
-random_video.avi
-pathfinding_demo*.mp4
+*.avi
+*.mp4

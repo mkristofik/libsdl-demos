@@ -53,6 +53,17 @@ This little app does what you'd expect: it plays music.  Any game is probably go
 ![screenshot, paused](https://raw.github.com/mkristofik/libsdl-demos/master/jukebox_screen_paused.jpg)
 ![screenshot, playing](https://raw.github.com/mkristofik/libsdl-demos/master/jukebox_screen_playing.jpg)
 
+## Sprite Animation
+
+This demo places a few sprites within a hex grid.  It aims to experiment with the unit animations used in Battle for Wesnoth.  So far we have an archer firing an arrow and a knight swinging a sword.
+
+**Technical details:**
+
+- Up to this point I've always been drawing full images.  This demo adds the ability to draw each animation frame from a sprite sheet.
+- All of the sprites face to the right.  I flip the enemy graphics in code at runtime.
+
+![screenshot](https://raw.github.com/mkristofik/libsdl-demos/master/animate_screen.jpg)
+
 ## Hello World
 
 No learning experience is complete without a Hello World program, so here it
