@@ -64,17 +64,23 @@ void sdlBlitFrame(const SdlSurface &surf, int frame, int numFrames,
 void sdlClear(SDL_Rect region);
 
 // Set the clipping region for the duration of a lambda or other function call.
-template <typename Func>
-void sdlSetClipRect(const SDL_Rect &rect, const Func &f)
+struct SdlSetClipRect
 {
-    SDL_Rect temp;
-    SDL_GetClipRect(screen, &temp);
-    SDL_SetClipRect(screen, &rect);
-    f();
-    SDL_SetClipRect(screen, &temp);
-    // TODO: this might be better as a struct so that we can restore the clip
-    // rectangle if f() throws an exception.
-}
+    SDL_Rect original_;
+
+    template <typename Func>
+    SdlSetClipRect(const SDL_Rect &rect, const Func &f)
+    {
+        SDL_GetClipRect(screen, &original_);
+        SDL_SetClipRect(screen, &rect);
+        f();
+    }
+
+    ~SdlSetClipRect()
+    {
+        SDL_SetClipRect(screen, &original_);
+    }
+};
 
 // Lock an image before accessing the underlying pixels.
 struct SdlLock

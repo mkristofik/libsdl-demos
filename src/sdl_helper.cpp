@@ -401,7 +401,7 @@ void sdlDrawText(const SdlFont &font, const char *txt, SDL_Rect pos,
     auto lines = wordWrap(font, txt, pos.w);
 
     sdlClear(pos);
-    sdlSetClipRect(pos, [&]
+    SdlSetClipRect(pos, [&]
     {
         auto yPos = pos.y;
         for (const auto &str : lines) {

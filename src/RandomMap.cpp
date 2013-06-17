@@ -226,7 +226,7 @@ void RandomMap::draw(Sint16 mpx, Sint16 mpy)
     seHex.first = std::min<Sint16>(seHex.first + 1, mgrid_.width());
     seHex.second = std::min<Sint16>(seHex.second + 1, mgrid_.height());
 
-    sdlSetClipRect(pDisplayArea_, [this, &nwHex, &seHex]
+    SdlSetClipRect(pDisplayArea_, [this, &nwHex, &seHex]
     {
         sdlClear(pDisplayArea_);
 
