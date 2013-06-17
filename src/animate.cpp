@@ -49,9 +49,9 @@ void loadImages()
     marshal = sdlLoadImage("../img/marshal.png");
     marshalAttack = sdlLoadImage("../img/marshal-attack-melee.png");
     missile = sdlLoadImage("../img/missile.png");
-    archer = sdlLoadImage("../img/orc-archer.png");
+    archer = sdlFlipH(sdlLoadImage("../img/orc-archer.png"));
     archerDefend = sdlLoadImage("../img/orc-archer-defend.png");
-    grunt = sdlLoadImage("../img/orc-grunt.png");
+    grunt = sdlFlipH(sdlLoadImage("../img/orc-grunt.png"));
     gruntDefend = sdlLoadImage("../img/orc-grunt-defend.png");
 }
 
@@ -101,9 +101,6 @@ void drawBowman()
         return;
     }
 
-    // TODO:
-    // - missile fires 295 ms
-    // - in wesnoth, missile hits 445 ms
     Uint32 frameSeq_ms[] = {65, 140, 215, 315, 445, 510};
     auto elapsed_ms = SDL_GetTicks() - animStart_ms;
     if (elapsed_ms > 510) {
@@ -158,7 +155,6 @@ void drawMarshal()
     if (elapsed_ms > 600) {
         sdlBlit(marshal, hex);
         subject = Animating::NONE;
-        // TODO: resetting this actually depends on the defender's hit animation
         return;
     }
 
@@ -221,6 +217,8 @@ void drawEnemy2()
         return;
     }
 
+    // TODO: in wesnoth, the melee defense animation starts a little early.  It
+    // appears like a parry instead of taking a hit.
     auto elapsed_ms = SDL_GetTicks() - animStart_ms;
     if (elapsed_ms < 300 || elapsed_ms > 550) {
         sdlBlit(grunt, hex);

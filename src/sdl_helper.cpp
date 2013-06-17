@@ -11,6 +11,7 @@
     See the COPYING.txt file for more details.
 */
 #include "sdl_helper.h"
+#include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <string>
@@ -187,6 +188,38 @@ SdlSurface sdlDisplayFormat(const SdlSurface &src)
             << '\n';
     }
     return surf;
+}
+
+SdlSurface sdlFlipH(const SdlSurface &src)
+{
+    SDL_Surface *surf = SDL_ConvertSurface(src.get(), src->format, src->flags);
+    if (!surf) {
+        std::cerr << "Error copying surface during flipH: " << SDL_GetError()
+            << '\n';
+        return nullptr;
+    }
+
+    if (SDL_MUSTLOCK(surf)) {
+        if (SDL_LockSurface(surf) < 0) {
+            std::cerr << "Error locking surface: " << SDL_GetError() << '\n';
+            return nullptr;
+        }
+    }
+
+    auto pixels = static_cast<Uint32 *>(surf->pixels);
+    for (int y = 0; y < surf->h; ++y) {
+        for (int x = 0; x < surf->w / 2; ++x) {
+            int i1 = y * surf->w + x;
+            int i2 = (y + 1) * surf->w - x - 1;
+            std::swap(pixels[i1], pixels[i2]);
+        }
+    }
+
+    if (SDL_MUSTLOCK(surf)) {
+        SDL_UnlockSurface(surf);
+    }
+
+    return make_surface(surf);
 }
 
 void sdlBlit(const SdlSurface &surf, Sint16 px, Sint16 py)

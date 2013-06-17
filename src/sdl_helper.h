@@ -44,6 +44,9 @@ SdlSurface sdlCreateSurface(Sint16 width, Sint16 height);
 // failure.
 SdlSurface sdlDisplayFormat(const SdlSurface &src);
 
+// Flip a surface or sprite sheet.  Creates a new surface.
+SdlSurface sdlFlipH(const SdlSurface &src);
+
 // Draw the full surface to the screen using (px,py) as the upper-left corner.
 // Use the raw SDL_BlitSurface if you need something more specific.
 void sdlBlit(const SdlSurface &surf, Sint16 px, Sint16 py);
@@ -68,6 +71,8 @@ void sdlSetClipRect(const SDL_Rect &rect, const Func &f)
     SDL_SetClipRect(screen, &rect);
     f();
     SDL_SetClipRect(screen, &temp);
+    // TODO: this might be better as a struct so that we can restore the clip
+    // rectangle if f() throws an exception.
 }
 
 // Load a resource from disk.  Returns null on failure.
