@@ -15,7 +15,7 @@
 #include <iostream>
 
 // Who is animating right now?
-enum class Animating { NONE, BOWMAN, MARSHAL };
+enum class Animating { NONE, BOWMAN, MARSHAL, GRUNT };
 
 namespace
 {
@@ -30,11 +30,13 @@ namespace
     SdlSurface bowmanAttack;
     SdlSurface marshal;
     SdlSurface marshalAttack;
+    SdlSurface marshalDefend;
     SdlSurface missile;
     SdlSurface archer;
     SdlSurface archerDefend;
     SdlSurface grunt;
     SdlSurface gruntDefend;
+    SdlSurface gruntAttack;
 
     Uint32 animStart_ms = 0;
     auto subject = Animating::NONE;
@@ -47,11 +49,13 @@ void loadImages()
     bowmanAttack = sdlLoadImage("../img/bowman-attack-ranged.png");
     marshal = sdlLoadImage("../img/marshal.png");
     marshalAttack = sdlLoadImage("../img/marshal-attack-melee.png");
+    marshalDefend = sdlLoadImage("../img/marshal-defend.png");
     missile = sdlLoadImage("../img/missile.png");
     archer = sdlFlipH(sdlLoadImage("../img/orc-archer.png"));
     archerDefend = sdlFlipH(sdlLoadImage("../img/orc-archer-defend.png"));
     grunt = sdlFlipH(sdlLoadImage("../img/orc-grunt.png"));
     gruntDefend = sdlFlipH(sdlLoadImage("../img/orc-grunt-defend.png"));
+    gruntAttack = sdlFlipSheetH(sdlLoadImage("../img/orc-grunt-attack-melee.png"), 7);
 }
 
 Point pixelFromHex(Sint16 hx, Sint16 hy)
@@ -59,6 +63,26 @@ Point pixelFromHex(Sint16 hx, Sint16 hy)
     Sint16 px = hx * pHexSize * 3 / 4;
     Sint16 py = (hy + 0.5 * abs(hx % 2)) * pHexSize;
     return {px, py};
+}
+
+// attack animation lasts 600 ms
+// first half, slide toward hex 2,3 (get halfway there)
+// second half, slide back
+Point slideToTarget(const Point &src, const Point &target, Uint32 elapsed_ms)
+{
+    auto delta = (target - src) / 2;
+    Sint16 drawX = 0;
+    Sint16 drawY = 0;
+    if (elapsed_ms < 300) {
+        drawX = elapsed_ms / 300.0 * delta.first + src.first;
+        drawY = elapsed_ms / 300.0 * delta.second + src.second;
+    }
+    else {
+        drawX = (600 - elapsed_ms) / 300.0 * delta.first + src.first;
+        drawY = (600 - elapsed_ms) / 300.0 * delta.second + src.second;
+    }
+
+    return {drawX, drawY};
 }
 
 void handleMouseUp(const SDL_MouseButtonEvent &event)
@@ -144,46 +168,44 @@ void drawMissile()
 void drawMarshal()
 {
     auto hex = pixelFromHex(1, 2);
-    if (subject != Animating::MARSHAL) {
-        sdlBlit(marshal, hex);
-        return;
-    }
-
-    Uint32 frameSeq_ms[] = {50, 100, 200, 275, 375, 425, 500};
     auto elapsed_ms = SDL_GetTicks() - animStart_ms;
-    if (elapsed_ms > 600) {
-        sdlBlit(marshal, hex);
-        subject = Animating::NONE;
-        return;
-    }
 
-    // attack animation lasts 600 ms
-    // first half, slide toward hex 2,3 (get halfway there)
-    // second half, slide back
-    auto target = pixelFromHex(2, 3);
-    auto delta = (target - hex) / 2;
-    Sint16 drawX = 0;
-    Sint16 drawY = 0;
-    if (elapsed_ms < 300) {
-        drawX = elapsed_ms / 300.0 * delta.first + hex.first;
-        drawY = elapsed_ms / 300.0 * delta.second + hex.second;
+    if (subject == Animating::MARSHAL) {
+        Uint32 frameSeq_ms[] = {50, 100, 200, 275, 375, 425, 500};
+        if (elapsed_ms > 600) {
+            sdlBlit(marshal, hex);
+
+            // Start a retaliation after the attack finishes.
+            subject = Animating::GRUNT;
+            animStart_ms = SDL_GetTicks();
+            return;
+        }
+
+        auto drawPos = slideToTarget(hex, pixelFromHex(2, 3), elapsed_ms);
+
+        // Past the end of the animated frames, draw the base image.
+        if (elapsed_ms > 500) {
+            sdlBlit(marshal, drawPos);
+            return;
+        }
+
+        for (int i = 0; i < 7; ++i) {
+            if (elapsed_ms < frameSeq_ms[i]) {
+                sdlBlitFrame(marshalAttack, i, 7, drawPos);
+                break;
+            }
+        }
+    }
+    else if (subject == Animating::GRUNT) {
+        if (elapsed_ms >= 300 && elapsed_ms < 550) {
+            sdlBlit(marshalDefend, hex);
+        }
+        else {
+            sdlBlit(marshal, hex);
+        }
     }
     else {
-        drawX = (600 - elapsed_ms) / 300.0 * delta.first + hex.first;
-        drawY = (600 - elapsed_ms) / 300.0 * delta.second + hex.second;
-    }
-
-    // Past the end of the animated frames, draw the base image.
-    if (elapsed_ms > 500) {
-        sdlBlit(marshal, drawX, drawY);
-        return;
-    }
-
-    for (int i = 0; i < 7; ++i) {
-        if (elapsed_ms < frameSeq_ms[i]) {
-            sdlBlitFrame(marshalAttack, i, 7, drawX, drawY);
-            break;
-        }
+        sdlBlit(marshal, hex);
     }
 }
 
@@ -211,19 +233,41 @@ void drawEnemy1()
 void drawEnemy2()
 {
     auto hex = pixelFromHex(2, 3);
-    if (subject != Animating::MARSHAL) {
-        sdlBlit(grunt, hex);
-        return;
-    }
-
-    // TODO: in wesnoth, the melee defense animation starts a little early.  It
-    // appears like a parry instead of taking a hit.
     auto elapsed_ms = SDL_GetTicks() - animStart_ms;
-    if (elapsed_ms < 300 || elapsed_ms > 550) {
-        sdlBlit(grunt, hex);
+
+    if (subject == Animating::GRUNT) {
+        Uint32 frameSeq_ms[] = {50, 100, 200, 275, 375, 425, 500};
+        if (elapsed_ms > 600) {
+            sdlBlit(grunt, hex);
+            subject = Animating::NONE;
+            return;
+        }
+
+        auto drawPos = slideToTarget(hex, pixelFromHex(1, 2), elapsed_ms);
+
+        // Past the end of the animated frames, draw the base image.
+        if (elapsed_ms > 500) {
+            sdlBlit(grunt, drawPos);
+            return;
+        }
+
+        for (int i = 0; i < 7; ++i) {
+            if (elapsed_ms < frameSeq_ms[i]) {
+                sdlBlitFrame(gruntAttack, i, 7, drawPos);
+                break;
+            }
+        }
+    }
+    else if (subject == Animating::MARSHAL) {
+        if (elapsed_ms < 300 || elapsed_ms > 550) {
+            sdlBlit(grunt, hex);
+        }
+        else {
+            sdlBlit(gruntDefend, hex);
+        }
     }
     else {
-        sdlBlit(gruntDefend, hex);
+        sdlBlit(grunt, hex);
     }
 }
 
@@ -259,8 +303,15 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
             drawHexGrid();
             drawBowman();
             drawMissile();
-            drawEnemy2();  // order matters, we want the attacker drawn on top
-            drawMarshal();
+            // order matters, we want the attacker drawn on top
+            if (subject == Animating::MARSHAL) {
+                drawEnemy2();
+                drawMarshal();
+            }
+            else {
+                drawMarshal();
+                drawEnemy2();
+            }
             drawEnemy1();
             SDL_UpdateRect(screen, 0, 0, 0, 0);
         }
