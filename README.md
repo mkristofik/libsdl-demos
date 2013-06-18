@@ -55,7 +55,7 @@ This little app does what you'd expect: it plays music.  Any game is probably go
 
 ## Sprite Animation
 
-This demo places a few sprites within a hex grid.  It aims to experiment with the unit animations used in Battle for Wesnoth.  So far we have an archer firing an arrow and a knight swinging a sword.
+This demo places a few sprites within a hex grid.  It aims to experiment with the unit animations used in Battle for Wesnoth.  So far we have an archer firing an arrow and a knight swinging a sword.  [See a video](http://youtu.be/_Ax89QjaccE).
 
 **Technical details:**
 
