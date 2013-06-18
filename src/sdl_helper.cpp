@@ -91,16 +91,24 @@ namespace
         return lines;
     }
 
-    // source: Battle for Wesnoth, flip_surface() in sdl_utils.cpp.
-    void flipH(Uint32 *pixels, int xStart, int yStart, int width, int height)
+    SdlSurface deepCopy(const SdlSurface &src)
     {
-        // note: skipping the local x and y and using the function args
-        // directly in the loop will cause GCC to optimize this function out.
-        for (int y = yStart; y < height; ++y) {
-            for (int x = xStart; x < width / 2; ++x) {
-                std::cerr << "Flip\n";
-                int i1 = y * width + x;
-                int i2 = (y + 1) * width - x - 1;
+        auto surf = SDL_ConvertSurface(src.get(), src->format, src->flags);
+        if (!surf) {
+            std::cerr << "Error copying surface: " << SDL_GetError() << '\n';
+            return nullptr;
+        }
+        return make_surface(surf);
+    }
+
+    // source: Battle for Wesnoth, flip_surface() in sdl_utils.cpp.
+    void flipH(SdlSurface &src, int frameStart, int frameWidth)
+    {
+        auto pixels = static_cast<Uint32 *>(src->pixels);
+        for (auto y = 0; y < src->h; ++y) {
+            for (auto x = 0; x < frameWidth / 2; ++x) {
+                auto i1 = y * src->w + frameStart + x;
+                auto i2 = y * src->w + frameStart + frameWidth - x - 1;
                 std::swap(pixels[i1], pixels[i2]);
             }
         }
@@ -207,18 +215,31 @@ SdlSurface sdlDisplayFormat(const SdlSurface &src)
 
 SdlSurface sdlFlipH(const SdlSurface &src)
 {
-    SDL_Surface *surf = SDL_ConvertSurface(src.get(), src->format, src->flags);
+    auto surf = deepCopy(src);
     if (!surf) {
-        std::cerr << "Error copying surface during flipH: " << SDL_GetError()
-            << '\n';
         return nullptr;
     }
 
     SdlLock(surf, [&] {
-        flipH(static_cast<Uint32 *>(surf->pixels), 0, 0, surf->w, surf->h);
+        flipH(surf, 0, surf->w);
     });
+    return surf;
+}
 
-    return make_surface(surf);
+SdlSurface sdlFlipSheetH(const SdlSurface &src, int numFrames)
+{
+    auto surf = deepCopy(src);
+    if (!surf) {
+        return nullptr;
+    }
+
+    auto frameWidth = surf->w / numFrames;
+    SdlLock(surf, [&] {
+        for (auto x = 0; x < surf->w; x += frameWidth) {
+            flipH(surf, x, frameWidth);
+        }
+    });
+    return surf;
 }
 
 void sdlBlit(const SdlSurface &surf, Sint16 px, Sint16 py)

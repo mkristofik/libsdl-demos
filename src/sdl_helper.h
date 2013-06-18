@@ -47,6 +47,7 @@ SdlSurface sdlDisplayFormat(const SdlSurface &src);
 
 // Flip a surface or sprite sheet.  Creates a new surface.
 SdlSurface sdlFlipH(const SdlSurface &src);
+SdlSurface sdlFlipSheetH(const SdlSurface &src, int numFrames);
 
 // Draw the full surface to the screen using (px,py) as the upper-left corner.
 // Use the raw SDL_BlitSurface if you need something more specific.
@@ -88,7 +89,7 @@ struct SdlLock
     SDL_Surface *surface_;
 
     template <typename Func>
-    SdlLock(SDL_Surface *surf, const Func &f) : surface_{surf}
+    SdlLock(SdlSurface &surf, const Func &f) : surface_{surf.get()}
     {
         if (SDL_MUSTLOCK(surface_)) {
             if (SDL_LockSurface(surface_) == 0) {

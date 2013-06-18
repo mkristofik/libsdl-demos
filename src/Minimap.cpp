@@ -84,7 +84,7 @@ void Minimap::generate()
     //     Draw that color for the pixel
     //
     // note: this will have to be fixed if BitsPerPixel is ever not 32.
-    SdlLock(surf.get(), [&] {
+    SdlLock(surf, [&] {
         for (Sint16 x = 0; x < width_; ++x) {
             for (Sint16 y = 0; y < height_; ++y) {
                 int mostCommon = GRASS;
