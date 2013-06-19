@@ -40,6 +40,13 @@ namespace
 
     Uint32 animStart_ms = 0;
     auto subject = Animating::NONE;
+
+    bool bowSoundPlayed = false;
+    bool archerHitSoundPlayed = false;
+    bool swordSoundPlayed = false;
+    bool gruntHitSoundPlayed = false;
+    bool retaliateSoundPlayed = false;
+    bool marshalHitSoundPlayed = false;
 }
 
 void loadImages()
@@ -95,10 +102,16 @@ void handleMouseUp(const SDL_MouseButtonEvent &event)
     if (event.button == SDL_BUTTON_LEFT) {
         subject = Animating::BOWMAN;
         animStart_ms = SDL_GetTicks();
+        bowSoundPlayed = false;
+        archerHitSoundPlayed = false;
     }
     else if (event.button == SDL_BUTTON_RIGHT) {
         subject = Animating::MARSHAL;
         animStart_ms = SDL_GetTicks();
+        swordSoundPlayed = false;
+        gruntHitSoundPlayed = false;
+        retaliateSoundPlayed = false;
+        marshalHitSoundPlayed = false;
     }
 }
 
@@ -116,7 +129,7 @@ void drawHexGrid()
     sdlBlit(tile, pixelFromHex(2, 4));
 }
 
-void drawBowman()
+void drawBowman(const SdlSound &bowSound)
 {
     auto hex = pixelFromHex(1, 0);
     if (subject != Animating::BOWMAN) {
@@ -136,6 +149,11 @@ void drawBowman()
             sdlBlitFrame(bowmanAttack, i, 6, hex);
             break;
         }
+    }
+
+    if (!bowSoundPlayed && elapsed_ms > 140) {
+        sdlPlaySound(bowSound);
+        bowSoundPlayed = true;
     }
 }
 
@@ -165,7 +183,7 @@ void drawMissile()
     sdlBlitFrame(missile, direction, 6, px, py);
 }
 
-void drawMarshal()
+void drawMarshal(const SdlSound &swordSound, const SdlSound &hitSound)
 {
     auto hex = pixelFromHex(1, 2);
     auto elapsed_ms = SDL_GetTicks() - animStart_ms;
@@ -195,10 +213,19 @@ void drawMarshal()
                 break;
             }
         }
+
+        if (!swordSoundPlayed && elapsed_ms > 100) {
+            sdlPlaySound(swordSound);
+            swordSoundPlayed = true;
+        }
     }
     else if (subject == Animating::GRUNT) {
         if (elapsed_ms >= 300 && elapsed_ms < 550) {
             sdlBlit(marshalDefend, hex);
+            if (!marshalHitSoundPlayed) {
+                sdlPlaySound(hitSound);
+                marshalHitSoundPlayed = true;
+            }
         }
         else {
             sdlBlit(marshal, hex);
@@ -209,7 +236,7 @@ void drawMarshal()
     }
 }
 
-void drawEnemy1()
+void drawEnemy1(const SdlSound &hitSound)
 {
     auto hex = pixelFromHex(4, 2);
     if (subject != Animating::BOWMAN) {
@@ -223,6 +250,10 @@ void drawEnemy1()
     }
     else if (elapsed_ms < 995) {
         sdlBlit(archerDefend, hex);
+        if (!archerHitSoundPlayed) {
+            sdlPlaySound(hitSound);
+            archerHitSoundPlayed = true;
+        }
     }
     else {
         sdlBlit(archer, hex);
@@ -230,7 +261,7 @@ void drawEnemy1()
     }
 }
 
-void drawEnemy2()
+void drawEnemy2(const SdlSound &swordSound, const SdlSound &hitSound)
 {
     auto hex = pixelFromHex(2, 3);
     auto elapsed_ms = SDL_GetTicks() - animStart_ms;
@@ -257,13 +288,22 @@ void drawEnemy2()
                 break;
             }
         }
+
+        if (!retaliateSoundPlayed && elapsed_ms > 100) {
+            sdlPlaySound(swordSound);
+            retaliateSoundPlayed = true;
+        }
     }
     else if (subject == Animating::MARSHAL) {
-        if (elapsed_ms < 300 || elapsed_ms > 550) {
-            sdlBlit(grunt, hex);
+        if (elapsed_ms >= 300 && elapsed_ms < 550) {
+            sdlBlit(gruntDefend, hex);
+            if (!gruntHitSoundPlayed) {
+                sdlPlaySound(hitSound);
+                gruntHitSoundPlayed = true;
+            }
         }
         else {
-            sdlBlit(gruntDefend, hex);
+            sdlBlit(grunt, hex);
         }
     }
     else {
@@ -279,11 +319,20 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
 
     loadImages();
 
+    // Load sounds (can't do this at file scope).
+    auto bowFired = sdlLoadSound("../sounds/bow.ogg");
+    auto marshalHit = sdlLoadSound("../sounds/human-hit.ogg");
+    auto archerHit = sdlLoadSound("../sounds/orc-small-hit.ogg");
+    auto gruntHit = sdlLoadSound("../sounds/orc-hit.ogg");
+    auto swordSwing = sdlLoadSound("../sounds/sword.ogg");
+    auto theme = sdlLoadMusic("../music/battle.ogg");
+
     drawHexGrid();
-    drawBowman();
-    drawMarshal();
-    drawEnemy1();
-    drawEnemy2();
+    drawBowman(bowFired);
+    drawMarshal(swordSwing, marshalHit);
+    drawEnemy1(archerHit);
+    drawEnemy2(swordSwing, gruntHit);
+    sdlPlayMusic(theme);
     SDL_UpdateRect(screen, 0, 0, 0, 0);
 
     bool isDone = false;
@@ -291,6 +340,8 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     while (!isDone) {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
+                Mix_HaltMusic();
+                Mix_HaltChannel(-1);
                 isDone = true;
             }
             else if (event.type == SDL_MOUSEBUTTONUP) {
@@ -301,18 +352,18 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
         if (subject != Animating::NONE) {
             sdlClear(window);
             drawHexGrid();
-            drawBowman();
+            drawBowman(bowFired);
             drawMissile();
             // order matters, we want the attacker drawn on top
             if (subject == Animating::MARSHAL) {
-                drawEnemy2();
-                drawMarshal();
+                drawEnemy2(swordSwing, gruntHit);
+                drawMarshal(swordSwing, marshalHit);
             }
             else {
-                drawMarshal();
-                drawEnemy2();
+                drawMarshal(swordSwing, marshalHit);
+                drawEnemy2(swordSwing, gruntHit);
             }
-            drawEnemy1();
+            drawEnemy1(archerHit);
             SDL_UpdateRect(screen, 0, 0, 0, 0);
         }
 

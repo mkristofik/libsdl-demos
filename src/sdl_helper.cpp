@@ -325,6 +325,16 @@ SdlMusic sdlLoadMusic(const std::string &filename)
     return sdlLoadMusic(filename.c_str());
 }
 
+SdlSound sdlLoadSound(const char *filename)
+{
+    SdlSound sound{Mix_LoadWAV(filename), Mix_FreeChunk};
+    if (!sound) {
+        std::cerr << "Error loading sound " << filename << "\n    "
+            << Mix_GetError() << '\n';
+    }
+    return sound;
+}
+
 void sdlDashedLineH(Sint16 px, Sint16 py, Uint16 len, Uint32 color)
 {
     assert(screen != nullptr);
@@ -447,8 +457,23 @@ void sdlDrawText(const SdlFont &font, const std::string &txt, SDL_Rect pos,
     return sdlDrawText(font, txt.c_str(), pos, color);
 }
 
-void sdlPlayMusic(SdlMusic &music)
+void sdlPlayMusic(const SdlMusic &music)
 {
-    Mix_PlayMusic(music.get(), 0);
+    if (Mix_PlayMusic(music.get(), 0) == -1) {
+        std::cerr << "Error playing music: " << Mix_GetError() << '\n';
+        return;
+    }
+
     Mix_VolumeMusic(MIX_MAX_VOLUME / 2);
+}
+
+void sdlPlaySound(const SdlSound &sound)
+{
+    auto channel = Mix_PlayChannel(-1, sound.get(), 0);
+    if (channel == -1) {
+        std::cerr << "Error playing sound: " << Mix_GetError() << '\n';
+        return;
+    }
+
+    Mix_Volume(channel, MIX_MAX_VOLUME / 2);
 }

@@ -26,6 +26,7 @@
 using SdlSurface = std::shared_ptr<SDL_Surface>;
 using SdlFont = std::unique_ptr<TTF_Font, void(*)(TTF_Font *)>;
 using SdlMusic = std::shared_ptr<Mix_Music>;
+using SdlSound = std::shared_ptr<Mix_Chunk>;
 
 extern SDL_Surface *screen;
 
@@ -118,6 +119,7 @@ SdlSurface sdlLoadImage(const char *filename);
 SdlFont sdlLoadFont(const char *filename, int ptSize);
 SdlMusic sdlLoadMusic(const char *filename);
 SdlMusic sdlLoadMusic(const std::string &filename);
+SdlSound sdlLoadSound(const char *filename);
 // note: don't try to allocate these at global scope.  They need sdlInit()
 // before they will work, and the objects must be freed before SDL teardown
 // happens.
@@ -141,7 +143,8 @@ void sdlDrawText(const SdlFont &font, const char *txt, SDL_Rect pos,
 void sdlDrawText(const SdlFont &font, const std::string &txt, SDL_Rect pos,
                  const SDL_Color &color);
 
-// Play a music file at a reasonable volume.
-void sdlPlayMusic(SdlMusic &music);
+// Play sound files at a reasonable volume.
+void sdlPlayMusic(const SdlMusic &music);
+void sdlPlaySound(const SdlSound &Sound);
 
 #endif
