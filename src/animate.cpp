@@ -13,6 +13,8 @@
 #include "hex_utils.h"
 #include "sdl_helper.h"
 #include <iostream>
+#include <unordered_map>
+#include <vector>
 
 // Who is animating right now?
 enum class Animating { NONE, BOWMAN, MARSHAL, GRUNT };
@@ -47,6 +49,35 @@ namespace
     bool gruntHitSoundPlayed = false;
     bool retaliateSoundPlayed = false;
     bool marshalHitSoundPlayed = false;
+
+    std::vector<Uint32> redColors;
+    std::vector<Uint32> blueColors;
+    std::unordered_map<Uint32, int> baseColors;
+}
+
+// source: Battle for Wesnoth, recolor_image() in sdl_utils.cpp.
+void applyTeamColor(SdlSurface &img, int team)
+{
+    std::vector<Uint32> *teamColors = &blueColors;
+    if (team == 1) {
+        teamColors = &redColors;
+    }
+
+    SdlLock(img, [&] {
+        auto p = static_cast<Uint32 *>(img->pixels);
+        auto end = p + img->w * img->h;
+        for (; p != end; ++p) {
+            Uint32 alpha = (*p) & 0xFF000000;
+            if (alpha == 0) continue;  // skip invisible pixels
+
+            // Base team colors are RGB only, mask off alpha channel.
+            Uint32 curColor = (*p) & 0x00FFFFFF;
+            const auto &colorKey = baseColors.find(curColor);
+            if (colorKey != std::end(baseColors)) {
+                *p = alpha + (*teamColors)[colorKey->second];
+            }
+        }
+    });
 }
 
 void loadImages()
@@ -63,6 +94,71 @@ void loadImages()
     grunt = sdlFlipH(sdlLoadImage("../img/orc-grunt.png"));
     gruntDefend = sdlFlipH(sdlLoadImage("../img/orc-grunt-defend.png"));
     gruntAttack = sdlFlipSheetH(sdlLoadImage("../img/orc-grunt-attack-melee.png"), 7);
+}
+
+// Generate the 19 different shades that will be used to re-color sprites
+// according to their team.  Starting from a reference color, compute 14 darker
+// shades and 4 lighter shades.
+std::vector<Uint32> setTeamColors(Uint8 red, Uint8 green, Uint8 blue)
+{
+    std::vector<Uint32> colors(19);
+    // reference color
+    colors[14] = SDL_MapRGB(screen->format, red, green, blue);
+
+    // Fade toward black in 1/16th increments.
+    auto rStep = red / 16.0;
+    auto gStep = green / 16.0;
+    auto bStep = blue / 16.0;
+    double curR = red;
+    double curG = green;
+    double curB = blue;
+    for (int i = 13; i >= 0; --i) {
+        curR -= rStep;
+        curG -= gStep;
+        curB -= bStep;
+        colors[i] = SDL_MapRGB(screen->format, curR, curG, curB);
+    }
+
+    // Fade toward white in 1/5th increments.
+    rStep = (255 - red) / 5.0;
+    gStep = (255 - green) / 5.0;
+    bStep = (255 - blue) / 5.0;
+    curR = red;
+    curG = green;
+    curB = blue;
+    for (int i = 15; i < 19; ++i) {
+        curR += rStep;
+        curG += gStep;
+        curB += bStep;
+        colors[i] = SDL_MapRGB(screen->format, curR, curG, curB);
+    }
+
+    return colors;
+}
+
+// These are the colors otherwise unused by unit graphics.  They will be
+// replaced by corresponding team colors.
+void setBaseColors()
+{
+    baseColors.emplace(SDL_MapRGB(screen->format, 0x3F, 0, 0x16), 0);
+    baseColors.emplace(SDL_MapRGB(screen->format, 0x55, 0, 0x2A), 1);
+    baseColors.emplace(SDL_MapRGB(screen->format, 0x69, 0, 0x39), 2);
+    baseColors.emplace(SDL_MapRGB(screen->format, 0x7B, 0, 0x45), 3);
+    baseColors.emplace(SDL_MapRGB(screen->format, 0x8C, 0, 0x51), 4);
+    baseColors.emplace(SDL_MapRGB(screen->format, 0x9E, 0, 0x5D), 5);
+    baseColors.emplace(SDL_MapRGB(screen->format, 0xB1, 0, 0x69), 6);
+    baseColors.emplace(SDL_MapRGB(screen->format, 0xC3, 0, 0x74), 7);
+    baseColors.emplace(SDL_MapRGB(screen->format, 0xD6, 0, 0x7F), 8);
+    baseColors.emplace(SDL_MapRGB(screen->format, 0xEC, 0, 0x8C), 9);
+    baseColors.emplace(SDL_MapRGB(screen->format, 0xEE, 0x3D, 0x96), 10);
+    baseColors.emplace(SDL_MapRGB(screen->format, 0xEF, 0x5B, 0xA1), 11);
+    baseColors.emplace(SDL_MapRGB(screen->format, 0xF1, 0x72, 0xAC), 12);
+    baseColors.emplace(SDL_MapRGB(screen->format, 0xF2, 0x87, 0xB6), 13);
+    baseColors.emplace(SDL_MapRGB(screen->format, 0xF4, 0x9A, 0xC1), 14);
+    baseColors.emplace(SDL_MapRGB(screen->format, 0xF6, 0xAD, 0xCD), 15);
+    baseColors.emplace(SDL_MapRGB(screen->format, 0xF8, 0xC1, 0xD9), 16);
+    baseColors.emplace(SDL_MapRGB(screen->format, 0xFA, 0xD5, 0xE5), 17);
+    baseColors.emplace(SDL_MapRGB(screen->format, 0xFD, 0xE9, 0xF1), 18);
 }
 
 Point pixelFromHex(Sint16 hx, Sint16 hy)
@@ -190,9 +286,11 @@ void drawMarshal(const SdlSound &swordSound, const SdlSound &hitSound)
 
     if (subject == Animating::MARSHAL) {
         Uint32 frameSeq_ms[] = {50, 100, 200, 275, 375, 425, 500};
-        if (elapsed_ms > 600) {
+        if (elapsed_ms > 600 && elapsed_ms <= 900) {
             sdlBlit(marshal, hex);
-
+            return;
+        }
+        else if (elapsed_ms > 900) {
             // Start a retaliation after the attack finishes.
             subject = Animating::GRUNT;
             animStart_ms = SDL_GetTicks();
@@ -318,6 +416,20 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
     }
 
     loadImages();
+    setBaseColors();
+    redColors = setTeamColors(0xFF, 0, 0);
+    blueColors = setTeamColors(0x2E, 0x41, 0x9B);
+
+    applyTeamColor(bowman, 0);
+    applyTeamColor(bowmanAttack, 0);
+    applyTeamColor(marshal, 0);
+    applyTeamColor(marshalAttack, 0);
+    applyTeamColor(marshalDefend, 0);
+    applyTeamColor(archer, 1);
+    applyTeamColor(archerDefend, 1);
+    applyTeamColor(grunt, 1);
+    applyTeamColor(gruntDefend, 1);
+    applyTeamColor(gruntAttack, 1);
 
     // Load sounds (can't do this at file scope).
     auto bowFired = sdlLoadSound("../sounds/bow.ogg");
