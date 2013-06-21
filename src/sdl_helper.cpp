@@ -475,5 +475,5 @@ void sdlPlaySound(const SdlSound &sound)
         return;
     }
 
-    Mix_Volume(channel, MIX_MAX_VOLUME / 2);
+    Mix_Volume(channel, MIX_MAX_VOLUME / 3);
 }

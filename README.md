@@ -55,12 +55,14 @@ This little app does what you'd expect: it plays music.  Any game is probably go
 
 ## Sprite Animation
 
-This demo places a few sprites within a hex grid.  It aims to experiment with the unit animations used in Battle for Wesnoth.  So far we have an archer firing an arrow and a knight swinging a sword.  [See a video](http://youtu.be/_Ax89QjaccE).
+This demo places a few sprites within a hex grid.  It aims to experiment with the unit animations used in Battle for Wesnoth.  So far we have an archer firing an arrow and a knight swinging a sword.  [See a video](http://youtu.be/Up7vQKw3Nvg).
 
 **Technical details:**
 
 - Up to this point I've always been drawing full images.  This demo adds the ability to draw each animation frame from a sprite sheet.
 - All of the sprites face to the right.  I flip the enemy graphics in code at runtime.
+- After doing the jukebox app, it was simple to add a background music track and some sound effects.
+- I've implemented the Battle for Wesnoth [team coloring](http://wiki.wesnoth.org/Team_Color_Shifting) algorithm to adjust the colors of each sprite at load time.
 
 ![screenshot](https://raw.github.com/mkristofik/libsdl-demos/master/animate_screen.jpg)
 
