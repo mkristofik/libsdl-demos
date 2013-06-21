@@ -340,7 +340,8 @@ void sdlDashedLineH(Sint16 px, Sint16 py, Uint16 len, Uint32 color)
     assert(screen != nullptr);
     const Uint16 lineWidth = 1;
     for (const auto &dash : dashedLine(len)) {
-        SDL_Rect r = {Sint16(px + dash.first), py, dash.second, lineWidth};
+        SDL_Rect r = {static_cast<Sint16>(px + dash.first), py, dash.second,
+                      lineWidth};
         if (SDL_FillRect(screen, &r, color) < 0) {
             std::cerr << "Error drawing horizontal dashed line: "
                 << SDL_GetError() << '\n';
@@ -356,7 +357,8 @@ void sdlDashedLineV(Sint16 px, Sint16 py, Uint16 len, Uint32 color)
     assert(screen != nullptr);
     const Uint16 lineWidth = 1;
     for (const auto &dash : dashedLine(len)) {
-        SDL_Rect r = {px, Sint16(py + dash.first), lineWidth, dash.second};
+        SDL_Rect r = {px, static_cast<Sint16>(py + dash.first), lineWidth,
+                      dash.second};
         if (SDL_FillRect(screen, &r, color) < 0) {
             std::cerr << "Error drawing horizontal dashed line: "
                 << SDL_GetError() << '\n';

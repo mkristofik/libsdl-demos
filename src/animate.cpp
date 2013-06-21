@@ -64,17 +64,17 @@ void applyTeamColor(SdlSurface &img, int team)
     }
 
     SdlLock(img, [&] {
-        auto p = static_cast<Uint32 *>(img->pixels);
-        auto end = p + img->w * img->h;
-        for (; p != end; ++p) {
-            Uint32 alpha = (*p) & 0xFF000000;
+        auto pixel = static_cast<Uint32 *>(img->pixels);
+        auto end = pixel + img->w * img->h;
+        for (; pixel != end; ++pixel) {
+            Uint32 alpha = (*pixel) & 0xFF000000;
             if (alpha == 0) continue;  // skip invisible pixels
 
             // Base team colors are RGB only, mask off alpha channel.
-            Uint32 curColor = (*p) & 0x00FFFFFF;
+            Uint32 curColor = (*pixel) & 0x00FFFFFF;
             const auto &colorKey = baseColors.find(curColor);
             if (colorKey != std::end(baseColors)) {
-                *p = alpha + (*teamColors)[colorKey->second];
+                *pixel = alpha + (*teamColors)[colorKey->second];
             }
         }
     });
