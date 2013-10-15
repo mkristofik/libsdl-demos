@@ -20,6 +20,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <algorithm>
 
 const Sint16 Sint16_min = std::numeric_limits<Sint16>::min();
 const Sint16 Sint16_max = std::numeric_limits<Sint16>::max();
