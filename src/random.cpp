@@ -249,7 +249,7 @@ extern "C" int SDL_main(int, char **)  // 2-arg form is required by SDL
         SDL_Delay(1);
     }
 
-    std::cout << "Average frame time: " << std::accumulate(std::begin(frames), std::end(frames), 0) / static_cast<double>(frames.size()) << '\n';
+    std::cout << "Average frame time: " << accumulate(std::begin(frames), std::end(frames), 0) / static_cast<double>(frames.size()) << '\n';
     std::cout << "Minimum frame: " << *min_element(std::begin(frames), std::end(frames)) << '\n';
     std::cout << "Maximum frame: " << *max_element(std::begin(frames), std::end(frames)) << '\n';
     return EXIT_SUCCESS;
