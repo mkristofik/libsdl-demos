@@ -626,7 +626,7 @@ void RandomMap::setObstacleImages()
         o.pyOffset = (pHexSize - o.img->h) / 2;
 
         // Shift the graphics a tiny bit for a less gridded look.
-        std::uniform_int_distribution<size_t> dist(-3, 3);
+        std::uniform_int_distribution<Sint16> dist(-3, 3);
         o.pxOffset += dist(randomGenerator());
         o.pyOffset += dist(randomGenerator());
     }

@@ -11,6 +11,7 @@
     See the COPYING.txt file for more details.
 */
 #include "hex_utils.h"
+#include <algorithm>
 #include <sstream>
 
 bool operator==(const Point &lhs, const Point &rhs)
